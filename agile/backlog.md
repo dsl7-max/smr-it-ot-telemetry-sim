@@ -34,6 +34,7 @@
 - [ ] **US-402** Optix project files versioned in repo (`/control-room/optix/`) with export/import notes.
 - [ ] **US-403** Grafana provisioned as code (datasource + dashboards JSON in `/deploy/grafana/`): exec KPI view, trends, uptime.
 - [ ] **US-404** End-to-end latency check (sim value change → Grafana) documented.
+- [ ] **US-406** *(carried from Sprint 1 US-105)* Register self-hosted runners on PC #2 (`citadel-plant`), PC #3 (`control-room`), PC #4 (`enterprise-it`) as Windows services with Docker access; configure secrets (`POSTGRES_PASSWORD`, `GRAFANA_ADMIN_PASSWORD`) and variables (`PLANT_HOST`, `CONTROL_ROOM_HOST`); set `RUNNERS_READY=true`; verify a push deploys all 3 stacks.
 
 ## Sprint 5 — Alarms, Scenarios & Hardening
 - [ ] **US-501** Alarm limits (HI/HIHI/LO/LOLO) in PLC + HMI alarm banner + Grafana alert rules.

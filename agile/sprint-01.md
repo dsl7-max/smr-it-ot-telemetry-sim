@@ -56,6 +56,10 @@
 - [x] `/.github/workflows/deploy.yml` scaffolded: pytest → matrix deploy to 3 self-hosted runners
 - [x] `/deploy/docker-compose.plant.yml`, `docker-compose.control-room.yml`, `docker-compose.enterprise-it.yml` scaffolded
 - [ ] Private GitHub repo created and `main` pushed
+- [x] Deploy jobs gated behind repo variable `RUNNERS_READY == 'true'` so `main` stays green until runners exist
+
+> **Deferred to Sprint 4 (PO directive, 2026-11-23):** runner registration, secrets/variables, and end-to-end deploy below move to backlog **US-406**. Set `RUNNERS_READY=true` to un-gate.
+
 - [ ] Self-hosted runner on PC #2 with labels `self-hosted, windows, citadel-plant`
 - [ ] Self-hosted runner on PC #3 with labels `self-hosted, windows, control-room`
 - [ ] Self-hosted runner on PC #4 with labels `self-hosted, windows, enterprise-it`
@@ -72,3 +76,4 @@
 - **2026-11-23 (Session 3):** Installed the VS Code extensions, set the Git identity (`dsl7-max`), made the initial commit, and pushed `main` to the private repo `dsl7-max/valar-it-ot-sim`, closing US-101 and US-102. Next: build the US-103 Citadel reactor simulator with pytest, then register the three self-hosted runners.
 - **2026-11-23 (Session 4):** Built the US-103 Citadel reactor simulator (CORE_TEMP °C, HE_LOOP_PRESS bar, RAD_MON_01–03 µSv/h) with a seeded, clock-injected design, a JSON-lines CLI, and 26 passing pytest tests, and made CI fail on an empty test suite. Next: push to confirm the GitHub Actions `test` job passes, then start US-104 network documentation and register the self-hosted runners.
 - **2026-11-23 (Session 5):** The GitHub Actions `test` job passed on `714099d`, closing US-103, and the pytest gate in front of deploy is confirmed working. Next: US-104 network documentation (hostnames, static IPs, L3.5 firewall rules) and registering the self-hosted runners on PC #2–#4.
+- **2026-11-23 (Session 6):** Gated the three deploy jobs behind the `RUNNERS_READY` repo variable so pushes to `main` stay green on pytest, and deferred runner registration and end-to-end deploy to Sprint 4 (US-406). Next: US-104 network documentation and static IP verification.
