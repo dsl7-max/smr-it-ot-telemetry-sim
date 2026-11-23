@@ -1,6 +1,7 @@
-# PC #2 — Citadel Plant Floor (Purdue L0–1). Runner labels: [self-hosted, windows, citadel-plant]
-# Run manually: docker compose -f deploy/docker-compose.plant.yml up -d --build
-# Exposes field protocols to the Control Room (PC #3) only: Modbus TCP :502, OPC UA :4840.
+# PC #2 — Citadel Plant Floor (Purdue L0–1) · citadel-plant · 10.10.0.10 · AIR-GAPPED
+# Deployed remotely from the PC #4 jump-host (DOCKER_HOST=ssh://citadel-plant via ProxyJump) — see docs/network.md §6.
+# Air gap: images must be self-contained and pre-loaded (no pulls); no bind-mounted host files.
+# Exposes field protocols to the Control Room (PC #3, 10.10.0.20) only: Modbus TCP :502, OPC UA :4840.
 name: citadel-plant
 
 services: {}

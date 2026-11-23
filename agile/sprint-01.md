@@ -1,14 +1,14 @@
-# Sprint 01 — Foundation, Citadel Topology & Zero-Touch Pipeline
+# Sprint 01 — Foundation, Citadel Topology & Zero-Touch Pipeline ✅ CLOSED
 
-**Dates:** Nov 21 – Nov 29, 2026 · **MVP deadline:** Dec 31, 2026 (see `backlog.md`)
-**Sprint Goal:** Stand up a portable repo, a verified 4-PC Citadel network, a first reactor sensor simulator with unit tests, and a `git push` pipeline that deploys to PC #2, PC #3, and PC #4.
+**Dates:** Nov 21 – Nov 29, 2026 (closed early, Nov 23) · **MVP deadline:** Dec 31, 2026 (see `backlog.md`)
+**Sprint Goal:** Stand up a portable repo, a documented 4-PC Citadel network, a first reactor sensor simulator with unit tests, and a `git push` pipeline foundation for PC #2, PC #3, and PC #4.
 
-| PC | Role | Purdue | Runner labels | Workloads |
-|----|------|--------|---------------|-----------|
-| #1 | Dev & CI Workstation | — | — | VS Code, Claude Code, pytest, Git |
-| #2 | Citadel Plant Floor (Flat HP AiO) | L0–1 | `citadel-plant` | Reactor simulator, Virtual PLC (Modbus :502, OPC UA :4840) |
-| #3 | Citadel Control Room (34" Curved HP AiO) | L2–3 | `control-room` | FactoryTalk Optix HMI, Mosquitto (:1883) |
-| #4 | Enterprise IT & Analytics (Flat HP AiO) | L4 (behind L3.5 firewall) | `enterprise-it` | Ingestion worker, TimescaleDB (:5432), Grafana (:3000) |
+| PC | Hostname · IP | Purdue | Workloads |
+|----|---------------|--------|-----------|
+| #1 | `citadel-dev` · 192.168.1.177 (corp, DHCP) | — | VS Code, Claude Code, pytest, Git |
+| #2 | `citadel-plant` · 10.10.0.10 (air-gapped OT) | L0–1 | Reactor simulator, Virtual PLC (Modbus :502, OPC UA :4840) |
+| #3 | `citadel-hmi` · 10.10.0.20 (air-gapped OT) | L2–3 | FactoryTalk Optix HMI, Mosquitto (:1883) |
+| #4 | `citadel-it` · 192.168.1.244 + 10.10.0.30 (dual-NIC) | L4 / L3.5 boundary | Ingestion worker, TimescaleDB (:5432), Grafana (:3000), Actions runner + jump-host |
 
 ---
 
@@ -26,7 +26,7 @@
 *As the builder, I want a documented structure and architecture so that reviewers (and I) understand the system at a glance.*
 
 - [x] Repo initialized with `/simulators`, `/ot-gateway`, `/it-ingestion`, `/deploy`, `/.github/workflows`, `/docs`, `/agile`
-- [x] `/docs/architecture.md` created with Mermaid.js diagram of the 4-PC Citadel Purdue Model (levels, services, ports, L3.5 firewall, CI/CD runners)
+- [x] `/docs/architecture.md` created with Mermaid.js diagram of the 4-PC Citadel Purdue Model (levels, services, ports, L3.5 boundary, CI/CD path)
 - [x] `/agile/backlog.md` created and re-baselined to a 6-week MVP ending Dec 31, 2026 (Sprints 2–6, incl. Week 6 demo script)
 - [x] `README.md` explains project purpose, topology, and how to clone/run
 
@@ -40,32 +40,41 @@
 - [x] `pytest` passes locally on PC #1
 - [x] `pytest` passes in the GitHub Actions `test` job (empty-test-suite exception removed) — green on `714099d`
 
-## US-104: 4-PC Network Topology & Static IP Verification
-*As the builder, I want verified static IPs and firewall rules so that data flows L0 → L4 only through approved ports.*
+## US-104: 4-PC Dual-NIC + Air-Gapped Network Topology & Firewall Baseline ✅ *(design & tooling scope)*
+*As the builder, I want a documented, enforceable network design so that data flows L0 → L4 only through approved conduits.*
 
-- [ ] `/docs/network.md` documents hostname, static IP, subnet, gateway, and role for PC #1–#4 (OT zone vs. IT zone)
-- [ ] L3.5 router firewall rules documented: only TCP 1883 between PC #3 and PC #4
-- [ ] Ping checks recorded between all permitted PC pairs
-- [ ] Port checks recorded (`Test-NetConnection -Port`): 502/4840 PC #3→PC #2, 1883 PC #4→PC #3, 5432/3000 on PC #4
-- [ ] Negative check recorded: PC #4 cannot reach PC #2 on 502/4840
-- [ ] Windows Defender Firewall inbound rules documented per PC
+- [x] `/docs/network.md` documents hostname, IP, subnet, gateway, NIC role, and Internet access for PC #1–#4 (corp LAN `192.168.1.0/24` vs. air-gapped R8000 OT LAN `10.10.0.0/24`)
+- [x] Full flow matrix documented: 9 allowed flows + 5 explicitly blocked (incl. PC #4 ↔ PC #2 blocked at both ends)
+- [x] Level 3.5 enforcement documented: PC #4 dual-NIC with IP forwarding/IPEnableRouter/ICS/RRAS disabled and no gateway on the OT NIC; honest caveat vs. a true DMZ recorded
+- [x] Windows Defender Firewall rules documented per PC
+- [x] `/deploy/setup-firewall.ps1` created: per-role `New-NetFirewallRule` baseline, forwarding guards, PASS/FAIL `-VerifyOnly` report; parse-checked and dry-run (`-WhatIf`) for all 3 roles on PC #1
+- [x] PC #4 jump-host deployment path documented (single runner, SSH + ProxyJump, `docker save | load` across the air gap)
+- [ ] ➜ **Moved to US-406 (Sprint 4):** apply the script on PC #2–#4 and record ping/port checks, including negative checks PC #4 ↛ PC #2 *(requires hands-on time on the execution PCs; 502/4840 can't pass until the Virtual PLC exists in Sprint 2)*
 
-## US-105: Zero-Touch `git push` CI/CD Pipeline
+## US-105: Zero-Touch `git push` CI/CD Pipeline ✅ *(foundation scope)*
 *As the builder, I want every push to `main` to test and deploy automatically so that all three execution PCs always run the latest code.*
 
-- [x] `/.github/workflows/deploy.yml` scaffolded: pytest → matrix deploy to 3 self-hosted runners
+- [x] `/.github/workflows/deploy.yml` scaffolded: pytest → deploy matrix
 - [x] `/deploy/docker-compose.plant.yml`, `docker-compose.control-room.yml`, `docker-compose.enterprise-it.yml` scaffolded
-- [ ] Private GitHub repo created and `main` pushed
-- [x] Deploy jobs gated behind repo variable `RUNNERS_READY == 'true'` so `main` stays green until runners exist
-
-> **Deferred to Sprint 4 (PO directive, 2026-11-23):** runner registration, secrets/variables, and end-to-end deploy below move to backlog **US-406**. Set `RUNNERS_READY=true` to un-gate.
-
-- [ ] Self-hosted runner on PC #2 with labels `self-hosted, windows, citadel-plant`
-- [ ] Self-hosted runner on PC #3 with labels `self-hosted, windows, control-room`
-- [ ] Self-hosted runner on PC #4 with labels `self-hosted, windows, enterprise-it`
-- [ ] Repository secrets (`POSTGRES_PASSWORD`, `GRAFANA_ADMIN_PASSWORD`) and variables (`PLANT_HOST`, `CONTROL_ROOM_HOST`) configured
+- [x] Private GitHub repo created and `main` pushed (`dsl7-max/valar-it-ot-sim`)
 - [x] Push to `main` runs pytest and blocks deploy on failure (deploy `needs: test`; verified green on `714099d`)
-- [ ] Successful push deploys all 3 stacks with no manual steps; `docker compose ps` healthy on PC #3 and PC #4
+- [x] Deploy jobs gated behind repo variable `RUNNERS_READY == 'true'` so `main` stays green until the runner exists
+- [ ] ➜ **Moved to US-406 (Sprint 4, PO directive 2026-11-23):** single runner on PC #4 (air gap means PCs #2/#3 can't host runners), SSH jump-host deploy, secrets/variables, `RUNNERS_READY=true`, end-to-end deploy of all 3 stacks
+
+---
+
+## Sprint 1 Review
+
+| Story | Outcome |
+|-------|---------|
+| US-101 Dev environment | ✅ Done |
+| US-102 Repo, architecture, backlog | ✅ Done |
+| US-103 Reactor simulator + pytest | ✅ Done (26 tests, CI green) |
+| US-104 Network design + firewall baseline | ✅ Done — live verification carried to US-406 |
+| US-105 CI/CD pipeline | ✅ Foundation done — runner + jump-host deploy carried to US-406 |
+
+**Key decisions:** 4-PC Citadel topology · air-gapped OT LAN with dual-NIC PC #4 as the non-routing L3.5 boundary · single runner on PC #4 deploying over SSH (ProxyJump to PC #2) · deploys gated by `RUNNERS_READY` until Sprint 4.
+**Carried over:** live network verification and runner/jump-host deployment → **US-406** (Sprint 4).
 
 ---
 
@@ -77,3 +86,4 @@
 - **2026-11-23 (Session 4):** Built the US-103 Citadel reactor simulator (CORE_TEMP °C, HE_LOOP_PRESS bar, RAD_MON_01–03 µSv/h) with a seeded, clock-injected design, a JSON-lines CLI, and 26 passing pytest tests, and made CI fail on an empty test suite. Next: push to confirm the GitHub Actions `test` job passes, then start US-104 network documentation and register the self-hosted runners.
 - **2026-11-23 (Session 5):** The GitHub Actions `test` job passed on `714099d`, closing US-103, and the pytest gate in front of deploy is confirmed working. Next: US-104 network documentation (hostnames, static IPs, L3.5 firewall rules) and registering the self-hosted runners on PC #2–#4.
 - **2026-11-23 (Session 6):** Gated the three deploy jobs behind the `RUNNERS_READY` repo variable so pushes to `main` stay green on pytest, and deferred runner registration and end-to-end deploy to Sprint 4 (US-406). Next: US-104 network documentation and static IP verification.
+- **2026-11-23 (Session 7 — Sprint 1 close):** Locked the dual-NIC L4 + air-gapped OT design in `docs/network.md` and `deploy/setup-firewall.ps1`, re-architected deployment around a single PC #4 runner and SSH jump-host (ProxyJump to PC #2 keeps PC #4 ↛ PC #2 intact), and closed US-104 and Sprint 1 with live verification and runner work carried to US-406. Next: Sprint 2 — extend the reactor simulator (US-201) and build the Virtual PLC with Modbus TCP :502 (US-202).

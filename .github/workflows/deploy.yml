@@ -37,6 +37,8 @@ jobs:
       vars.RUNNERS_READY == 'true' &&
       github.event_name != 'pull_request' &&
       github.ref == 'refs/heads/main'
+    # TODO(US-406): PCs #2/#3 are air-gapped and cannot host runners. Rework so every entry runs on the
+    # PC #4 runner (enterprise-it) and targets OT nodes via DOCKER_HOST=ssh://... (docs/network.md §6).
     strategy:
       fail-fast: false
       matrix:

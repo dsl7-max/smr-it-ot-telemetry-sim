@@ -5,7 +5,7 @@
 
 | Sprint | Dates (2026) | Theme | Detail |
 |--------|--------------|-------|--------|
-| 1 | Nov 21 – Nov 29 | Foundation, Topology & Pipeline | see `sprint-01.md` |
+| 1 | Nov 21 – Nov 29 | Foundation, Topology & Pipeline | ✅ Closed Nov 23 — see `sprint-01.md` |
 | 2 | Nov 30 – Dec 6 | Citadel Plant Floor: Simulator + Virtual PLC | below |
 | 3 | Dec 7 – Dec 13 | Control Room Gateway + MQTT → Enterprise Ingestion | below |
 | 4 | Dec 14 – Dec 20 | FactoryTalk Optix HMI + Grafana Dashboards | below |
@@ -18,7 +18,7 @@
 - [ ] **US-201** Extend reactor simulator: core temp, helium loop pressure, helium flow, radiation monitors (multiple channels), with physically coupled dynamics (e.g., pressure follows temp).
 - [ ] **US-202** Virtual PLC exposing simulator tags over Modbus TCP :502 (documented register map in `/docs/tag-map.md`).
 - [ ] **US-203** Same tags over OPC UA :4840 (documented node IDs).
-- [ ] **US-204** Dockerfiles for sim + PLC; enable services in `docker-compose.plant.yml`; deployed via `citadel-plant` runner.
+- [ ] **US-204** Dockerfiles for sim + PLC (no internet at runtime: all deps baked in); enable services in `docker-compose.plant.yml`; deployed via PC #4 jump-host (US-406).
 - [ ] **US-205** pytest coverage for simulator dynamics and register/node mapping.
 
 ## Sprint 3 — Control Room Gateway & Enterprise Ingestion (PC #3 → PC #4)
@@ -26,7 +26,7 @@
 - [ ] **US-302** MQTT topic & payload schema documented (`/docs/mqtt-schema.md`).
 - [ ] **US-303** Ingestion worker on PC #4: subscribe across firewall, batch-insert into TimescaleDB hypertable.
 - [ ] **US-304** DB schema migration script (hypertable, retention, continuous aggregate for 1-min rollups).
-- [ ] **US-305** Firewall rule locked to TCP 1883 PC #3 ↔ PC #4; verified with negative port tests (502/4840 blocked from PC #4).
+- [ ] **US-305** End-to-end MQTT across L3.5 (PC #4 `10.10.0.30` → PC #3 `10.10.0.20:1883`) working under the `setup-firewall.ps1` baseline; ingestion container confirmed unable to reach PC #2.
 - [ ] **US-306** pytest for gateway mapping and ingestion parsing (broker/DB mocked).
 
 ## Sprint 4 — Operator HMI & Executive Dashboards
@@ -34,7 +34,16 @@
 - [ ] **US-402** Optix project files versioned in repo (`/control-room/optix/`) with export/import notes.
 - [ ] **US-403** Grafana provisioned as code (datasource + dashboards JSON in `/deploy/grafana/`): exec KPI view, trends, uptime.
 - [ ] **US-404** End-to-end latency check (sim value change → Grafana) documented.
-- [ ] **US-406** *(carried from Sprint 1 US-105)* Register self-hosted runners on PC #2 (`citadel-plant`), PC #3 (`control-room`), PC #4 (`enterprise-it`) as Windows services with Docker access; configure secrets (`POSTGRES_PASSWORD`, `GRAFANA_ADMIN_PASSWORD`) and variables (`PLANT_HOST`, `CONTROL_ROOM_HOST`); set `RUNNERS_READY=true`; verify a push deploys all 3 stacks.
+- [ ] **US-406** *(carried from Sprint 1 US-104/US-105)* **PC #4 dual-NIC jump-host deployment + live network verification.** PCs #2/#3 are air-gapped and cannot host runners, so PC #4 is the single deploy point (see `docs/network.md` §6):
+  - [ ] Apply `deploy/setup-firewall.ps1` on PC #2 (`Plant`), PC #3 (`ControlRoom`), PC #4 (`EnterpriseIT`); `-VerifyOnly` all PASS
+  - [ ] Run and record the `docs/network.md` §7 verification matrix (incl. negative checks PC #4 ↛ PC #2, host and in-container)
+  - [ ] Register **one** self-hosted runner on PC #4 (`self-hosted, windows, enterprise-it`) as a Windows service with Docker access
+  - [ ] OpenSSH Server on PC #2/#3 (key-only auth, `citadel` user); runner's `~/.ssh/config` with `ProxyJump citadel-hmi` for `citadel-plant`
+  - [ ] Decide Docker on PC #2/#3: Docker Desktop + auto-login vs. Docker Engine in WSL (headless)
+  - [ ] Bake `mosquitto.conf` into a custom image (no bind mounts for remotely deployed services)
+  - [ ] Rework `deploy.yml` matrix: all jobs `runs-on` PC #4; build locally → `docker save | ssh … docker load` → `DOCKER_HOST=ssh://…` `docker compose up --pull never`
+  - [ ] Configure secrets (`POSTGRES_PASSWORD`, `GRAFANA_ADMIN_PASSWORD`) and variables (`PLANT_HOST=10.10.0.10`, `CONTROL_ROOM_HOST=10.10.0.20`); set `RUNNERS_READY=true`
+  - [ ] Verify one `git push` deploys all 3 stacks; `docker compose ps` healthy on PC #3 and PC #4
 
 ## Sprint 5 — Alarms, Scenarios & Hardening
 - [ ] **US-501** Alarm limits (HI/HIHI/LO/LOLO) in PLC + HMI alarm banner + Grafana alert rules.
@@ -54,5 +63,6 @@
 
 ## Icebox (post-MVP)
 - OPC UA → MQTT Sparkplug B
-- L3.5 DMZ broker / data diode pattern
+- Replace dual-homed PC #4 with a true L3.5 DMZ (firewall pair or data diode + DMZ broker)
+- VLAN-segment the flat OT /24 (separate L1 and L2–3 broadcast domains)
 - Historian replay & anomaly detection on TimescaleDB
