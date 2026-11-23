@@ -9,7 +9,7 @@ A 4-PC portfolio lab that simulates a helium-cooled reactor plant and moves its 
 | #3 | Citadel Control Room | L2–3 | Air-gapped OT 10.10.0.20 | FactoryTalk Optix HMI, OT gateway, Mosquitto (:1883) |
 | #4 | Enterprise IT & Analytics | L4 | Dual-NIC 192.168.1.244 + 10.10.0.30 | Ingestion worker, TimescaleDB (:5432), Grafana (:3000), Actions runner / jump-host |
 
-Diagram: [`docs/architecture.md`](docs/architecture.md) · Network & firewall: [`docs/network.md`](docs/network.md) · Plan: [`agile/backlog.md`](agile/backlog.md) · Sprint: [`agile/sprint-01.md`](agile/sprint-01.md)
+Diagram: [`docs/architecture.md`](docs/architecture.md) · Network & firewall: [`docs/network.md`](docs/network.md) · Compliance & interview guide: [`docs/compliance-and-interview-guide.md`](docs/compliance-and-interview-guide.md) · Plan: [`agile/backlog.md`](agile/backlog.md) · Sprint: [`agile/sprint-01.md`](agile/sprint-01.md)
 
 ## Quick Start (PC #1)
 
