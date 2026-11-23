@@ -39,17 +39,18 @@
 - [x] `RAD_MON_01..03` removed; `CORE_TEMP` / `HE_LOOP_PRESS` renamed to the unit-suffixed names
 - [x] pytest: steady-state convergence, step-response direction and lag, pressure/temperature ratio, fault magnitude stays within 25–80, control room stays below 0.3 µSv/h during a fault, determinism by seed (64 tests total)
 
-## US-202: Virtual PLC — Modbus TCP :502 · *3.5 h*
+## US-202: Virtual PLC — Modbus TCP :502 · *3.5 h* ✅
 *As a control-room engineer, I want the plant tags on Modbus TCP so that the OT gateway and HMI can poll them like a real PLC.*
 
-- [ ] `simulators/virtual_plc/` runs the simulator as its I/O image and serves Modbus TCP (pymodbus, asyncio)
-- [ ] **Register map in `/docs/tag-map.md`:**
+- [x] `simulators/virtual_plc/` runs the simulator as its I/O image and serves Modbus TCP (pymodbus, asyncio); one latched image per scan, so a single read returns one consistent tick
+- [x] **Register map in `/docs/tag-map.md`:**
   - Input registers (FC04, read-only): one scaled INT16 per tag (e.g., temp ×10, pressure ×100, radiation ×100)
   - Holding register (FC03/06): `POWER_SETPOINT_PCT` ×10, writable
   - Coil (FC01/05): `FAULT_TRIGGER`. Write 1 to trigger, 0 to clear.
-- [ ] Listens on container port 5020, published as host :502 (lets the container run as non-root)
-- [ ] pytest: scaling round-trips, register addresses match `tag-map.md`, and a coil write triggers the simulator fault (server tested in-process)
-- [ ] Security note in `tag-map.md`: Modbus has no authentication, so a writable coil is protected only by the PC #2 firewall rule (allows PC #3 only)
+  - *(Added)* `PLC_HEARTBEAT_COUNT` input register 6 (scan counter) so the gateway can detect stale data
+- [x] Listens on container port 5020 (`PLC_MODBUS_PORT`), to be published as host :502 in US-204 (lets the container run as non-root)
+- [x] pytest: scaling round-trips, register addresses match `tag-map.md` (the doc is parsed by a test), and a coil write triggers the simulator fault; a real server and client run in-process on an ephemeral port (59 new tests, 123 total)
+- [x] Security note in `tag-map.md`: Modbus has no authentication, so a writable coil is protected only by the PC #2 firewall rule (allows PC #3 only)
 
 ## US-203: Virtual PLC — OPC UA :4840 · *3 h*
 *As an HMI developer, I want the same tags over OPC UA so that FactoryTalk Optix can browse typed, named nodes.*
@@ -107,3 +108,4 @@
 - **2026-11-23 (Planning):** Drafted Sprint 2: 7 stories, ~16 h, covering coupled physics with physical radiation zones and a fault trigger, a Modbus/OPC UA Virtual PLC, plant containerization, and digest/version pinning. Next: PM review of the 3 open questions, then start with US-207.
 - **2026-11-23 (Session 1):** Closed US-207 (pytest 9.2.0, pymodbus 3.16.2, asyncua 2.1.0, plus a 19-package `constraints.txt` transitive lock) and US-201: a stateful coupled plant model with six unit-suffixed tags, physical radiation zones (vault 1.5 → 25–80 µSv/h on fault, control room steady at 0.20), and a code/CLI fault trigger, verified by 64 passing tests. Next: push to confirm CI on the locked set, then US-202 (Modbus TCP Virtual PLC and `docs/tag-map.md`).
 - **2026-11-23 (Session 1, CI):** CI on `d60d957` confirmed green with the locked set, closing US-207; the run had been stuck behind pre-gate run #2, so the workflow's `concurrency` group was moved from workflow level to the `deploy` job (per target PC) so the test job can never queue behind a stuck deploy. Next: US-202 (Modbus TCP Virtual PLC and `docs/tag-map.md`).
+- **2026-11-23 (Session 2):** Closed US-202: a Virtual PLC (`python -m simulators.virtual_plc`) that serves the reactor over Modbus TCP :5020 with a doc-verified register map (`docs/tag-map.md`), a writable power setpoint, a fault coil, a heartbeat and all-or-nothing multi-writes, built on pymodbus 3.16's `SimDevice` action hook (the old datastore API is deprecated). A live smoke run on PC #1 triggered a vault fault over the wire (1.5 → 52 µSv/h, control room steady at 0.21); next is US-203 (OPC UA :4840 in the same process).

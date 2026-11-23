@@ -52,7 +52,7 @@ flowchart TB
 |----|---------------|--------|--------------|-------------|---------|------|--------|
 | #1 Dev & CI | `citadel-dev` · 192.168.1.177 | — | — | — | VS Code, Claude Code, Git | — | Active |
 | #2 Citadel Plant | `citadel-plant` · 10.10.0.10 | L0–1 | `docker-compose.plant.yml` | PC #4 → SSH ProxyJump via PC #3 | citadel-reactor-sim (`simulators/citadel_reactor.py`): coupled model, 6 tags incl. `VAULT_RAD_USVH` / `CONTROL_ROOM_RAD_USVH` | — | Code built (US-201); container in US-204 |
-| | | | | | virtual-plc | 502/tcp, 4840/tcp | Planned (Sprint 2) |
+| | | | | | virtual-plc (`python -m simulators.virtual_plc`): Modbus TCP, register map in [`tag-map.md`](tag-map.md); OPC UA in US-203 | 502/tcp → container 5020; 4840/tcp | Modbus built (US-202); OPC UA in US-203; container in US-204 |
 | #3 Control Room | `citadel-hmi` · 10.10.0.20 | L2–3 | `docker-compose.control-room.yml` | PC #4 → SSH | mosquitto (`eclipse-mosquitto:2.0.20`) | 1883/tcp | Scaffolded |
 | | | | | | ot-gateway | — | Planned (Sprint 2–3) |
 | | | | | (manual) | FactoryTalk Optix (native Windows) | — | Planned (Sprint 4) |

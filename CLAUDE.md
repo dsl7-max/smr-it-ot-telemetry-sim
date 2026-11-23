@@ -43,6 +43,6 @@ At the end of every coding session:
 /it-ingestion       PC #4 L4:   MQTT → TimescaleDB worker
 /deploy             docker-compose.{plant,control-room,enterprise-it}.yml, setup-firewall.ps1, mosquitto config, .env.example
 /.github/workflows  deploy.yml — pytest → deploy (gated by RUNNERS_READY; PC #4 jump-host rework in US-406)
-/docs               architecture.md, network.md
+/docs               architecture.md, network.md, tag-map.md (Modbus/OPC UA register map; test-enforced)
 /agile              sprint-NN.md, backlog.md
 ```
