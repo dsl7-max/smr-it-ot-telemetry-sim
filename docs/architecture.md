@@ -51,7 +51,7 @@ flowchart TB
 | PC | Purdue Level | Runner labels | Compose file | Service | Port | Status |
 |----|--------------|---------------|--------------|---------|------|--------|
 | #1 Dev & CI | — | — (GitHub-hosted `ubuntu-latest` runs pytest) | — | VS Code, Claude Code, Git | — | Active |
-| #2 Citadel Plant | L0–1 | `self-hosted, windows, citadel-plant` | `docker-compose.plant.yml` | citadel-reactor-sim | — | Planned (US-103) |
+| #2 Citadel Plant | L0–1 | `self-hosted, windows, citadel-plant` | `docker-compose.plant.yml` | citadel-reactor-sim (`simulators/citadel_reactor.py`) | — | Code built (US-103); container in US-204 |
 | | | | | virtual-plc | 502/tcp, 4840/tcp | Planned (Sprint 2) |
 | #3 Control Room | L2–3 | `self-hosted, windows, control-room` | `docker-compose.control-room.yml` | mosquitto (`eclipse-mosquitto:2.0.20`) | 1883/tcp | Scaffolded |
 | | | | | ot-gateway | — | Planned (Sprint 2–3) |

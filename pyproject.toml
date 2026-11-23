@@ -1,0 +1,10 @@
+[project]
+name = "citadel-it-ot-sim"
+version = "0.1.0"
+description = "Citadel 4-PC IT/OT simulation sandbox"
+requires-python = ">=3.12"
+
+[tool.pytest.ini_options]
+testpaths = ["simulators", "ot-gateway", "it-ingestion"]
+pythonpath = ["."]
+addopts = "-ra"

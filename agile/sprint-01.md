@@ -33,11 +33,12 @@
 ## US-103: "Hello World" Citadel Reactor Sensor Simulator & Pytest Unit Test
 *As an OT engineer, I want simulated reactor telemetry so that downstream layers have realistic data to consume.*
 
-- [ ] `/simulators` contains a type-hinted Python module generating core temp, helium loop pressure, and radiation monitor readings
-- [ ] Readings include timestamp, tag name, value, unit, and stay within configurable bounds with noise
-- [ ] Simulator runnable from CLI (e.g., `python -m simulators.citadel_reactor`)
-- [ ] `pytest` unit tests cover value bounds, data shape, and deterministic output with a fixed seed
-- [ ] `pytest` passes locally on PC #1 and in the GitHub Actions `test` job
+- [x] `/simulators` contains a type-hinted Python module generating core temp (°C), helium loop pressure (bar), and radiation monitor (µSv/h) readings — `simulators/citadel_reactor.py`
+- [x] Readings include timestamp, tag name, value, unit, and stay within configurable bounds with noise
+- [x] Simulator runnable from CLI (`python -m simulators.citadel_reactor --seed 42 --count 5 --interval 1`), UTF-8 JSON lines
+- [x] `pytest` unit tests cover value bounds, data shape, and deterministic output with a fixed seed (26 tests)
+- [x] `pytest` passes locally on PC #1
+- [ ] `pytest` passes in the GitHub Actions `test` job (empty-test-suite exception removed)
 
 ## US-104: 4-PC Network Topology & Static IP Verification
 *As the builder, I want verified static IPs and firewall rules so that data flows L0 → L4 only through approved ports.*
@@ -69,3 +70,4 @@
 - **2026-11-21 (Session 1):** Scaffolded repo structure, Sprint 1 board, `CLAUDE.md` rules, starter Docker Compose files, and the test→deploy GitHub Actions pipeline. Next: complete US-101 environment verification and build the US-103 helium sensor simulator with tests.
 - **2026-11-23 (Session 2):** Re-baselined to the 4-PC Citadel architecture (Plant Floor L0–1, Control Room L2–3, Enterprise IT L4 behind the L3.5 firewall) with three compose files, a matrix deploy to three runner labels, the architecture diagram, and a 6-week backlog to the Dec 31 MVP; US-102 closed, and US-101 left open pending VS Code extensions and a Git identity. Next: create the private GitHub repo, register the three self-hosted runners, and build the US-103 reactor simulator.
 - **2026-11-23 (Session 3):** Installed the VS Code extensions, set the Git identity (`dsl7-max`), made the initial commit, and pushed `main` to the private repo `dsl7-max/valar-it-ot-sim`, closing US-101 and US-102. Next: build the US-103 Citadel reactor simulator with pytest, then register the three self-hosted runners.
+- **2026-11-23 (Session 4):** Built the US-103 Citadel reactor simulator (CORE_TEMP °C, HE_LOOP_PRESS bar, RAD_MON_01–03 µSv/h) with a seeded, clock-injected design, a JSON-lines CLI, and 26 passing pytest tests, and made CI fail on an empty test suite. Next: push to confirm the GitHub Actions `test` job passes, then start US-104 network documentation and register the self-hosted runners.

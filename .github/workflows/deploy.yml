@@ -26,8 +26,7 @@ jobs:
       - name: Install dev dependencies
         run: pip install -r requirements-dev.txt
       - name: Run pytest
-        # Exit code 5 = "no tests collected" — tolerated until US-103 lands the first tests. Remove then.
-        run: pytest -q || [ $? -eq 5 ]
+        run: pytest -q
 
   deploy:
     name: Deploy ${{ matrix.name }}
