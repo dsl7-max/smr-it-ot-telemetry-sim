@@ -1,0 +1,5 @@
+# Force LF so configs/scripts mounted into Linux containers work when checked out on Windows runners.
+* text=auto eol=lf
+*.ps1 text eol=crlf
+*.png binary
+*.jpg binary
