@@ -25,6 +25,8 @@ Role: Tactical Scrum Master & Lead Builder. Strategy and OT tutoring live with t
 - Every new module ships with `pytest` unit tests (`tests/` alongside the module). Run `pytest` before declaring work done.
 - Use `random.Random(seed)` / injectable clocks so simulator output is deterministic in tests.
 - Config via environment variables with sane defaults.
+- Tag names: `UPPER_SNAKE` with a unit suffix (`CORE_TEMP_C`, `HE_LOOP_PRESS_BAR`, `VAULT_RAD_USVH`). Keep names identical across simulator, Modbus map, OPC UA nodes, MQTT topics, and DB columns.
+- Dependencies: exact `==` pins in `requirements*.txt`; full transitive lock in `constraints.txt`. New deps must be stable releases at least 2 weeks old; regenerate the lock from a fresh venv after any change.
 
 ## 3. End-of-Session Ritual (automatic)
 

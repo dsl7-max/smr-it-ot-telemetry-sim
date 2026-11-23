@@ -1,1 +1,3 @@
-pytest>=8.3
+# Dev/test dependencies. Exact pins; full transitive lock in constraints.txt.
+-r requirements.txt
+pytest==9.2.0

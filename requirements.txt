@@ -1,0 +1,4 @@
+# Runtime dependencies (Plant Floor Virtual PLC). Exact pins; full transitive lock in constraints.txt.
+-c constraints.txt
+pymodbus==3.16.2
+asyncua==2.1.0

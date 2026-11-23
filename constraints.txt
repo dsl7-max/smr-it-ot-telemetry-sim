@@ -1,0 +1,21 @@
+# Full transitive lock for requirements.txt + requirements-dev.txt (US-207).
+# Regenerate: fresh venv -> pip install the direct pins -> pip freeze. Python 3.12, 2026-11-23.
+aiosqlite==0.22.1
+anyio==4.16.0
+asyncua==2.1.0
+cffi==2.1.1
+colorama==0.4.6
+cryptography==50.0.2
+idna==3.20
+iniconfig==2.3.1
+packaging==26.3
+pluggy==1.7.0
+pycparser==3.12
+Pygments==2.21.0
+pymodbus==3.16.2
+pytest==9.2.0
+python-dateutil==4.0.0
+pytz==2026.6
+sortedcontainers==2.4.0
+typing_extensions==4.16.0
+tzdata==2026.6

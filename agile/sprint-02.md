@@ -9,15 +9,16 @@
 
 ---
 
-## US-207: Lock Exact Dependency Versions · *0.5 h*
+## US-207: Lock Exact Dependency Versions · *0.5 h* ✅ *(pending CI confirmation)*
 *As the builder, I want exact dependency versions so that every build and test run is reproducible.*
 
-- [ ] `requirements-dev.txt` pins `pytest==<exact>` (no ranges)
-- [ ] New `requirements.txt` (runtime) pins `pymodbus==<exact>` and `asyncua==<exact>`; dev file includes it via `-r requirements.txt`
-- [ ] Chosen versions are stable releases at least 2 weeks old; recorded in the Session Log
+- [x] `requirements-dev.txt` pins `pytest==9.2.0` (no ranges)
+- [x] New `requirements.txt` (runtime) pins `pymodbus==3.16.2` and `asyncua==2.1.0`; dev file includes it via `-r requirements.txt`
+- [x] *(Added)* Full transitive lock in `constraints.txt` (19 packages, incl. `cryptography==50.0.2`) so indirect deps can't drift either
+- [x] Chosen versions are stable releases at least 2 weeks old (pytest 2026-10-27, pymodbus 2026-11-03, asyncua 2026-10-06); recorded in the Session Log
 - [ ] CI `test` job passes with the locked set
 
-## US-201: Coupled Reactor Physics + Physical Radiation Zones + Fault Trigger · *4.5 h*
+## US-201: Coupled Reactor Physics + Physical Radiation Zones + Fault Trigger · *4.5 h* ✅
 *As an OT engineer, I want sensor values that react to each other and to faults so that the HMI and dashboards show realistic plant behavior.*
 
 **Tags (unit-suffixed naming; see Open Question 1):**
@@ -31,12 +32,12 @@
 | `VAULT_RAD_USVH` | µSv/h | ~1.5 | Proportional to power; **fault → ramps to 25–80** (seeded random) |
 | `CONTROL_ROOM_RAD_USVH` | µSv/h | ~0.20 | Background only; the outer wall shields it, so it stays near 0.20 during a vault fault |
 
-- [ ] Simulator refactored to a **stateful, tick-based model** (`step(dt)`); still seeded and clock-injected, with no wall-clock in physics
-- [ ] Coupling verified: a power step raises temp (lagged) then pressure; reduced flow raises temp
-- [ ] `trigger_fault()` / `clear_fault()` API: vault rate ramps to the fault level over a few ticks and decays back after clearing
-- [ ] CLI flags `--fault-at-tick N` and `--fault-duration N` for scripted demos
-- [ ] `RAD_MON_01..03` removed; `CORE_TEMP` / `HE_LOOP_PRESS` renamed to the unit-suffixed names
-- [ ] pytest: steady-state convergence, step-response direction and lag, pressure/temperature ratio, fault magnitude stays within 25–80, control room stays below 0.3 µSv/h during a fault, determinism by seed
+- [x] Simulator refactored to a **stateful, tick-based model** (`CitadelReactor.step(dt)`); still seeded and clock-injected, with no wall-clock in physics; true state is noise-free, noise is applied only at `read()`
+- [x] Coupling verified: a power change moves temp with a first-order lag and pressure follows by ideal gas; half flow raises core temp 750 → 1250 °C
+- [x] `trigger_fault()` / `clear_fault()` API: vault rate ramps to the fault level over 5 s and decays back (τ = 10 s) after clearing; re-triggering while active is idempotent
+- [x] CLI flags `--fault-at-tick N` and `--fault-duration N` (plus `--dt`) for scripted demos
+- [x] `RAD_MON_01..03` removed; `CORE_TEMP` / `HE_LOOP_PRESS` renamed to the unit-suffixed names
+- [x] pytest: steady-state convergence, step-response direction and lag, pressure/temperature ratio, fault magnitude stays within 25–80, control room stays below 0.3 µSv/h during a fault, determinism by seed (64 tests total)
 
 ## US-202: Virtual PLC — Modbus TCP :502 · *3.5 h*
 *As a control-room engineer, I want the plant tags on Modbus TCP so that the OT gateway and HMI can poll them like a real PLC.*
@@ -104,3 +105,4 @@
 ## Session Log
 
 - **2026-11-23 (Planning):** Drafted Sprint 2: 7 stories, ~16 h, covering coupled physics with physical radiation zones and a fault trigger, a Modbus/OPC UA Virtual PLC, plant containerization, and digest/version pinning. Next: PM review of the 3 open questions, then start with US-207.
+- **2026-11-23 (Session 1):** Closed US-207 (pytest 9.2.0, pymodbus 3.16.2, asyncua 2.1.0, plus a 19-package `constraints.txt` transitive lock) and US-201: a stateful coupled plant model with six unit-suffixed tags, physical radiation zones (vault 1.5 → 25–80 µSv/h on fault, control room steady at 0.20), and a code/CLI fault trigger, verified by 64 passing tests. Next: push to confirm CI on the locked set, then US-202 (Modbus TCP Virtual PLC and `docs/tag-map.md`).

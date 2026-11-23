@@ -30,7 +30,7 @@ flowchart TB
             GW --> MQ
         end
         subgraph L01["PC #2 citadel-plant · Purdue L0–1 · Flat HP AiO · 10.10.0.10"]
-            SIM["Citadel Reactor Simulator<br/>core temp · He loop pressure · radiation"]
+            SIM["Citadel Reactor Simulator<br/>power · core temp · He pressure/flow<br/>vault + control room radiation"]
             PLC["Virtual PLC<br/>Modbus TCP :502 · OPC UA :4840"]
             SIM --> PLC
         end
@@ -51,7 +51,7 @@ flowchart TB
 | PC | Hostname / IP | Purdue | Compose file | Deployed by | Service | Port | Status |
 |----|---------------|--------|--------------|-------------|---------|------|--------|
 | #1 Dev & CI | `citadel-dev` · 192.168.1.177 | — | — | — | VS Code, Claude Code, Git | — | Active |
-| #2 Citadel Plant | `citadel-plant` · 10.10.0.10 | L0–1 | `docker-compose.plant.yml` | PC #4 → SSH ProxyJump via PC #3 | citadel-reactor-sim (`simulators/citadel_reactor.py`) | — | Code built (US-103); container in US-204 |
+| #2 Citadel Plant | `citadel-plant` · 10.10.0.10 | L0–1 | `docker-compose.plant.yml` | PC #4 → SSH ProxyJump via PC #3 | citadel-reactor-sim (`simulators/citadel_reactor.py`): coupled model, 6 tags incl. `VAULT_RAD_USVH` / `CONTROL_ROOM_RAD_USVH` | — | Code built (US-201); container in US-204 |
 | | | | | | virtual-plc | 502/tcp, 4840/tcp | Planned (Sprint 2) |
 | #3 Control Room | `citadel-hmi` · 10.10.0.20 | L2–3 | `docker-compose.control-room.yml` | PC #4 → SSH | mosquitto (`eclipse-mosquitto:2.0.20`) | 1883/tcp | Scaffolded |
 | | | | | | ot-gateway | — | Planned (Sprint 2–3) |
