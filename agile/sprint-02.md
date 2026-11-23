@@ -1,0 +1,106 @@
+# Sprint 02 — Citadel Plant Floor: Physics, Radiation Zones & Virtual PLC
+
+> **Status: APPROVED by Strategic PM (2026-11-23).** Decisions recorded under "PM Decisions" below.
+
+**Dates:** Nov 30 – Dec 6, 2026 · **Capacity:** ~16 h · **MVP deadline:** Dec 31, 2026
+**Sprint Goal:** PC #2 runs a containerized Citadel Plant Floor. A coupled reactor model plus two physical radiation zones feed a Virtual PLC that serves the same tags over Modbus TCP :502 and OPC UA :4840, and a fault can be triggered over the wire. Two supply-chain hardening items are also closed.
+
+**Execution order:** US-207 → US-201 → US-202 → US-203 → US-204 + US-206 → US-205
+
+---
+
+## US-207: Lock Exact Dependency Versions · *0.5 h*
+*As the builder, I want exact dependency versions so that every build and test run is reproducible.*
+
+- [ ] `requirements-dev.txt` pins `pytest==<exact>` (no ranges)
+- [ ] New `requirements.txt` (runtime) pins `pymodbus==<exact>` and `asyncua==<exact>`; dev file includes it via `-r requirements.txt`
+- [ ] Chosen versions are stable releases at least 2 weeks old; recorded in the Session Log
+- [ ] CI `test` job passes with the locked set
+
+## US-201: Coupled Reactor Physics + Physical Radiation Zones + Fault Trigger · *4.5 h*
+*As an OT engineer, I want sensor values that react to each other and to faults so that the HMI and dashboards show realistic plant behavior.*
+
+**Tags (unit-suffixed naming; see Open Question 1):**
+
+| Tag | Unit | Normal | Behavior |
+|-----|------|--------|----------|
+| `REACTOR_POWER_PCT` | % | 100 | Setpoint; ramps toward the operator setpoint |
+| `CORE_TEMP_C` | °C | ~750 | First-order lag toward a power-driven target; rises if helium flow drops |
+| `HE_LOOP_PRESS_BAR` | bar | ~70 | Tracks core temp, closed-loop gas: `P = P₀ · T(K) / T₀(K)` |
+| `HE_FLOW_KGS` | kg/s | ~90 | Circulator flow; lower flow means higher core temp |
+| `VAULT_RAD_USVH` | µSv/h | ~1.5 | Proportional to power; **fault → ramps to 25–80** (seeded random) |
+| `CONTROL_ROOM_RAD_USVH` | µSv/h | ~0.20 | Background only; the outer wall shields it, so it stays near 0.20 during a vault fault |
+
+- [ ] Simulator refactored to a **stateful, tick-based model** (`step(dt)`); still seeded and clock-injected, with no wall-clock in physics
+- [ ] Coupling verified: a power step raises temp (lagged) then pressure; reduced flow raises temp
+- [ ] `trigger_fault()` / `clear_fault()` API: vault rate ramps to the fault level over a few ticks and decays back after clearing
+- [ ] CLI flags `--fault-at-tick N` and `--fault-duration N` for scripted demos
+- [ ] `RAD_MON_01..03` removed; `CORE_TEMP` / `HE_LOOP_PRESS` renamed to the unit-suffixed names
+- [ ] pytest: steady-state convergence, step-response direction and lag, pressure/temperature ratio, fault magnitude stays within 25–80, control room stays below 0.3 µSv/h during a fault, determinism by seed
+
+## US-202: Virtual PLC — Modbus TCP :502 · *3.5 h*
+*As a control-room engineer, I want the plant tags on Modbus TCP so that the OT gateway and HMI can poll them like a real PLC.*
+
+- [ ] `simulators/virtual_plc/` runs the simulator as its I/O image and serves Modbus TCP (pymodbus, asyncio)
+- [ ] **Register map in `/docs/tag-map.md`:**
+  - Input registers (FC04, read-only): one scaled INT16 per tag (e.g., temp ×10, pressure ×100, radiation ×100)
+  - Holding register (FC03/06): `POWER_SETPOINT_PCT` ×10, writable
+  - Coil (FC01/05): `FAULT_TRIGGER`. Write 1 to trigger, 0 to clear.
+- [ ] Listens on container port 5020, published as host :502 (lets the container run as non-root)
+- [ ] pytest: scaling round-trips, register addresses match `tag-map.md`, and a coil write triggers the simulator fault (server tested in-process)
+- [ ] Security note in `tag-map.md`: Modbus has no authentication, so a writable coil is protected only by the PC #2 firewall rule (allows PC #3 only)
+
+## US-203: Virtual PLC — OPC UA :4840 · *3 h*
+*As an HMI developer, I want the same tags over OPC UA so that FactoryTalk Optix can browse typed, named nodes.*
+
+- [ ] OPC UA server (asyncua) in the same PLC process; namespace `urn:citadel:plant`
+- [ ] Address space: `Objects/Citadel/Reactor/*`, `Objects/Citadel/Radiation/{Vault,ControlRoom}/*`; values are native `Double` with an engineering-units property
+- [ ] Writable `PowerSetpoint` node and a `TriggerFault` / `ClearFault` method
+- [ ] Node IDs documented in `/docs/tag-map.md` next to the Modbus addresses (one table, both protocols)
+- [ ] MVP security: `SecurityPolicy None` + anonymous; `Basic256Sha256` Sign & Encrypt deferred to US-503 (see Open Question 3)
+- [ ] pytest: an in-process client reads every node, values match the Modbus side for the same tick, and the method triggers the fault
+
+## US-204: Containerize the Plant Floor · *2 h*
+*As the builder, I want the plant packaged as one self-contained image so that it runs on air-gapped PC #2 with no downloads.*
+
+- [ ] `simulators/Dockerfile`: `python:3.12-slim` (digest-pinned via US-206), deps installed at build time from locked requirements, **non-root user**, `HEALTHCHECK` (TCP probe on 5020)
+- [ ] `docker-compose.plant.yml`: a single `citadel-plant` service (simulator embedded in the PLC; see Open Question 2), ports `502:5020` and `4840:4840`, `SIM_SEED` / `SIM_TICK_SECONDS` env vars, **no bind mounts**
+- [ ] CI `test` job also runs `docker build` (catches Dockerfile breakage on every push)
+- [ ] Smoke test on PC #1: `docker compose up`, read values on 502/4840, `docker compose down` (short-lived; PC #1 still hosts no long-lived services)
+- [ ] `docs/architecture.md` inventory and diagram updated (ports, container, image)
+
+## US-206: Pin Docker Images by SHA-256 Digest · *1 h*
+*As a configuration manager, I want images pinned by digest so that an upstream tag change can't silently alter our baseline.*
+
+- [ ] All compose images and the Dockerfile `FROM` use `name:tag@sha256:<digest>` (tag kept for readability)
+- [ ] Digests taken from the multi-arch index (`docker buildx imagetools inspect`), recorded in the Session Log
+- [ ] `docs/architecture.md` and the compliance guide (§2.3, gap G4) updated to "digest-pinned"
+- [ ] All compose files still pass `docker compose config`; the plant image builds
+
+## US-205: Protocol Integration Tests + `plant_probe` CLI · *1.5 h*
+*As a tester, I want a probe that reads the running PLC over both protocols so that I can verify a deployment (now on PC #1, later from PC #3).*
+
+- [ ] `python -m tools.plant_probe --host <ip> [--modbus] [--opcua]` prints tag, value, and unit from both protocols side by side, and can `--trigger-fault` / `--clear-fault`
+- [ ] Integration test: start the PLC in-process on ephemeral ports, read back via the probe, confirm Modbus and OPC UA agree
+- [ ] Probe output becomes the evidence format for US-406's live verification on PC #3 → PC #2
+
+---
+
+## PM Decisions (approved 2026-11-23)
+
+1. **Tag naming:** ✅ standardize on unit-suffixed names: `REACTOR_POWER_PCT`, `CORE_TEMP_C`, `HE_LOOP_PRESS_BAR`, `HE_FLOW_KGS`, `VAULT_RAD_USVH`, `CONTROL_ROOM_RAD_USVH`.
+2. **Packaging:** ✅ L0 physics and the L1 Virtual PLC stay separate Python modules, shipped in a **single container**.
+3. **OPC UA security:** ✅ `SecurityPolicy None` for the MVP; `Basic256Sha256` + certificates hardened in US-503 (Sprint 5).
+4. **Control room shielding:** ✅ `CONTROL_ROOM_RAD_USVH` stays at normal background (~0.20 µSv/h) during a vault fault, demonstrating shielding effectiveness (GDC 19 habitability).
+
+## Risks
+
+- **Library API churn:** pymodbus has made breaking changes between minor versions; US-207 pins the version before any code is written against it.
+- **Capacity:** 16 h planned against ~16–17 h available. If it runs over, US-205's integration test moves to Sprint 3 (the probe CLI stays).
+- **Port 502 is privileged:** handled by publishing it from container port 5020 (US-202/204).
+
+---
+
+## Session Log
+
+- **2026-11-23 (Planning):** Drafted Sprint 2: 7 stories, ~16 h, covering coupled physics with physical radiation zones and a fault trigger, a Modbus/OPC UA Virtual PLC, plant containerization, and digest/version pinning. Next: PM review of the 3 open questions, then start with US-207.

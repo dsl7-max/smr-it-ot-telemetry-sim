@@ -48,17 +48,25 @@
 | Python dependencies | `requirements-dev.txt` uses `pytest>=8.3` | — | **Gap:** a version range, not a lock. Fix: pinned lockfile with hashes. |
 | Test gate | Deploy `needs: test`; an empty test suite fails CI | Software QA: verification before release | No independent verification (NQA-1 expects reviewers independent of the designer) |
 
-### 2.4 Dual-zone radiation monitoring
+### 2.4 Dual-zone radiation monitoring (physical shielding zones)
 
-> **Definition used here:** the **same radiation data presented in two security zones with different authority**. The OT Control Room HMI (PC #3) is the **authoritative operational display**. Enterprise Grafana (PC #4) is a **read-only, informational copy**.
-> **Current status:** the simulator emits `RAD_MON_01..03` (µSv/h). Zone tagging and alarming are planned (US-501). *If the PM means physical monitoring zones (e.g., reactor hall vs. helium loop area), the zone metadata can be added to the simulator tags.*
+> **Definition:** two **area radiation monitors in two physical shielding zones**, one on each side of the Citadel's shielding layers:
+>
+> | Tag | Location | Normal | Fault |
+> |-----|----------|--------|-------|
+> | `VAULT_RAD_USVH` | Inside the Citadel vault, **outside the concrete biological shield panels** | ~1.5 µSv/h | Spikes to **25–80 µSv/h** on a fault trigger |
+> | `CONTROL_ROOM_RAD_USVH` | **Outside the outer Citadel wall**, in the control room | ~0.20 µSv/h (normal background) | Stays near background. The outer wall is the second shielding layer. |
+>
+> **Status:** being implemented in Sprint 2 (**US-201**), replacing the generic `RAD_MON_01..03` channels from Sprint 1.
 
 | Aspect | Citadel implementation | Principle | Where it falls short of nuclear practice |
 |--------|------------------------|-----------|------------------------------------------|
-| OT display is authoritative | Operators act on the FactoryTalk Optix HMI fed directly over OPC UA from the PLC (Sprint 4) | Safety and operational decisions stay inside the protected zone; never depend on IT-side systems | — |
-| IT display is informational | Grafana reads the replicated MQTT → TimescaleDB copy | Information flows outward; enterprise users get visibility without control | A data diode would *guarantee* IT can't write back. Here it rests on firewall policy. |
-| SSEP relevance | Radiation monitors feed emergency classification decisions | Under 73.54, assets supporting **Emergency Preparedness** functions can be **CDAs** | Lab doesn't do CDA identification or consequence analysis (e.g., NEI 13-10 approach) |
-| Redundancy | Three monitor channels | **2-out-of-3 voting** is a standard way to tolerate a single failed channel without spurious trips (planned in US-501 alarms) | Real safety-related monitoring also needs qualified hardware, diversity, and independence |
+| Defense-in-depth shielding | Biological shield → vault → outer wall → control room; each zone has its own monitor | **Multiple independent barriers.** Each barrier's effectiveness is *measured*, not assumed. | Real shielding design uses dose-rate calculations and survey data, not a fixed simulator profile |
+| Vault monitor detects the fault | `VAULT_RAD_USVH` jumps ~17–53× on a fault trigger | **Area radiation monitors (ARMs)** alert workers to changing conditions; this supports **ALARA** (10 CFR 20) | Real ARMs have local audible/visual alarms independent of any network |
+| Control room stays habitable | `CONTROL_ROOM_RAD_USVH` stays near background during the vault fault | **Control room habitability**: operators must be able to stay and act during an event (cf. GDC 19, 10 CFR 50 App. A) | The lab models a single source term. It has no airborne pathway or ventilation isolation. |
+| Authoritative vs. informational display | Optix HMI on PC #3 (via OPC UA) is authoritative; Grafana on PC #4 is a read-only copy | Operational decisions stay inside the protected zone; IT only gets visibility | Without a data diode, "read-only" depends on firewall policy, not physics |
+| SSEP relevance | Radiation data feeds emergency classification | Under 73.54, assets supporting **Emergency Preparedness** functions can be **CDAs** | Lab doesn't do CDA identification or consequence analysis (e.g., NEI 13-10 approach) |
+| Channel redundancy | One channel per zone | Real ARMs often use redundant channels so a single failure can't hide an event | **Gap:** single channel per zone (see G8) |
 
 ---
 
@@ -90,6 +98,7 @@ Requirement → implementation → verification → evidence. This chain is what
 | G5 | Flat OT /24 | VLANs / separate switches per level; monitored conduits |
 | G6 | No continuous monitoring | OT IDS (passive span port), centralized logs, periodic control reviews |
 | G7 | No independent review | Branch protection + required reviewer; independent V&V for safety-relevant software |
+| G8 | One radiation channel per zone | Redundant channels per zone with 2-out-of-3 voting; local alarms independent of the network |
 
 ---
 
@@ -127,8 +136,8 @@ Requirement → implementation → verification → evidence. This chain is what
 **Q10. Why `git push` deployment, and would a plant allow that?**
 > "It demonstrates modern DevOps discipline: tests gate every release, and nothing is deployed by hand. But a nuclear plant wouldn't allow a network push into control systems. Changes go through an approved package, scanned media, and a manual install with verification. I'm explicit that the pipeline shows the *discipline* of controlled release, and I'd adapt the delivery mechanism to the site's change control process."
 
-**Q11. Why three radiation monitors?**
-> "Redundancy. With three channels you can do two-out-of-three voting: one failed or noisy sensor can't cause a spurious trip or hide a real event. It's a standard pattern in safety instrumentation. Alarms are on my backlog. I also show the data in two zones: the control room HMI is authoritative, Grafana is a read-only copy. Decisions happen in OT; IT only gets visibility."
+**Q11. Why two radiation monitoring zones?**
+> "They show defense-in-depth you can measure. One monitor sits in the vault, just outside the concrete biological shield: about 1.5 microsieverts per hour normally. The other sits outside the outer wall in the control room, at roughly 0.2, normal background. When I trigger a fault, the vault spikes to between 25 and 80, but the control room stays near background. That's the shielding proving itself, and it maps to control room habitability: operators can stay and act during an event."
 
 **Q12. What would you change first for production?**
 > "Three things. First, replace the dual-homed PC with a data diode, so data only flows outward. Second, replace git-push deploys into OT with a controlled media-based change process. Third, add continuous monitoring: a passive OT intrusion detection sensor plus centralized logging. After that: digest-pinned images, VLAN segmentation of the OT network, and required independent review on every change. All of it is already listed in my gap register."

@@ -14,12 +14,14 @@
 
 ---
 
-## Sprint 2 — Citadel Plant Floor (PC #2, L0–1)
-- [ ] **US-201** Extend reactor simulator: core temp, helium loop pressure, helium flow, radiation monitors (multiple channels), with physically coupled dynamics (e.g., pressure follows temp).
-- [ ] **US-202** Virtual PLC exposing simulator tags over Modbus TCP :502 (documented register map in `/docs/tag-map.md`).
+## Sprint 2 — Citadel Plant Floor (PC #2, L0–1) · detail in `sprint-02.md`
+- [ ] **US-201** Coupled reactor physics (power → core temp → He pressure; flow cooling) + physical radiation zones `VAULT_RAD_USVH` (~1.5, fault 25–80 µSv/h) / `CONTROL_ROOM_RAD_USVH` (~0.20 µSv/h) + fault trigger.
+- [ ] **US-202** Virtual PLC exposing plant tags over Modbus TCP :502 (register map in `/docs/tag-map.md`).
 - [ ] **US-203** Same tags over OPC UA :4840 (documented node IDs).
-- [ ] **US-204** Dockerfiles for sim + PLC (no internet at runtime: all deps baked in); enable services in `docker-compose.plant.yml`; deployed via PC #4 jump-host (US-406).
-- [ ] **US-205** pytest coverage for simulator dynamics and register/node mapping.
+- [ ] **US-204** Containerize the Plant Floor (air-gap-ready, non-root image); enable in `docker-compose.plant.yml`.
+- [ ] **US-205** Protocol integration tests + `plant_probe` CLI (Modbus/OPC UA read-back).
+- [ ] **US-206** Pin all Docker images by SHA-256 digest.
+- [ ] **US-207** Lock exact dependency versions (`pytest` and new runtime deps).
 
 ## Sprint 3 — Control Room Gateway & Enterprise Ingestion (PC #3 → PC #4)
 - [ ] **US-301** OT Gateway on PC #3: poll Modbus from PC #2, publish JSON to MQTT topic hierarchy (`citadel/<area>/<tag>`).
@@ -47,10 +49,10 @@
 
 ## Sprint 5 — Alarms, Scenarios & Hardening
 - [ ] **US-501** Alarm limits (HI/HIHI/LO/LOLO) in PLC + HMI alarm banner + Grafana alert rules.
-- [ ] **US-502** Scenario injector: "helium leak", "loss of flow", "radiation spike" triggerable from CLI.
-- [ ] **US-503** Mosquitto auth (password file) and non-default DB/Grafana credentials via secrets.
+- [ ] **US-502** Scenario injector: "helium leak", "loss of flow" triggerable from CLI/HMI (vault radiation spike delivered early in US-201).
+- [ ] **US-503** Mosquitto auth (password file), OPC UA `Basic256Sha256` Sign&Encrypt with certificates, non-default DB/Grafana credentials via secrets.
 - [ ] **US-504** Container healthchecks + `restart: unless-stopped` verified across reboot of each PC.
-- [ ] **US-505** Pipeline: remove "no tests" tolerance, add lint (ruff) + type check (mypy) gates.
+- [ ] **US-505** Pipeline: add lint (ruff) + type check (mypy) gates ("no tests" tolerance already removed in Sprint 1).
 
 ## Sprint 6 — Polish & Live Demo (deadline Dec 31)
 - [ ] **US-601** Demo script (`/docs/demo-script.md`): live `git push` on PC #1 shown as CI/CD kickoff screen → Actions run → visible change on PC #2, PC #3 HMI, and PC #4 Grafana; timed run-of-show with fallback steps.
