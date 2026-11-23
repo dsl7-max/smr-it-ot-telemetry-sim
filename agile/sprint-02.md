@@ -9,14 +9,14 @@
 
 ---
 
-## US-207: Lock Exact Dependency Versions · *0.5 h* ✅ *(pending CI confirmation)*
+## US-207: Lock Exact Dependency Versions · *0.5 h* ✅
 *As the builder, I want exact dependency versions so that every build and test run is reproducible.*
 
 - [x] `requirements-dev.txt` pins `pytest==9.2.0` (no ranges)
 - [x] New `requirements.txt` (runtime) pins `pymodbus==3.16.2` and `asyncua==2.1.0`; dev file includes it via `-r requirements.txt`
 - [x] *(Added)* Full transitive lock in `constraints.txt` (19 packages, incl. `cryptography==50.0.2`) so indirect deps can't drift either
 - [x] Chosen versions are stable releases at least 2 weeks old (pytest 2026-10-27, pymodbus 2026-11-03, asyncua 2026-10-06); recorded in the Session Log
-- [ ] CI `test` job passes with the locked set
+- [x] CI `test` job passes with the locked set (`d60d957`)
 
 ## US-201: Coupled Reactor Physics + Physical Radiation Zones + Fault Trigger · *4.5 h* ✅
 *As an OT engineer, I want sensor values that react to each other and to faults so that the HMI and dashboards show realistic plant behavior.*
@@ -106,3 +106,4 @@
 
 - **2026-11-23 (Planning):** Drafted Sprint 2: 7 stories, ~16 h, covering coupled physics with physical radiation zones and a fault trigger, a Modbus/OPC UA Virtual PLC, plant containerization, and digest/version pinning. Next: PM review of the 3 open questions, then start with US-207.
 - **2026-11-23 (Session 1):** Closed US-207 (pytest 9.2.0, pymodbus 3.16.2, asyncua 2.1.0, plus a 19-package `constraints.txt` transitive lock) and US-201: a stateful coupled plant model with six unit-suffixed tags, physical radiation zones (vault 1.5 → 25–80 µSv/h on fault, control room steady at 0.20), and a code/CLI fault trigger, verified by 64 passing tests. Next: push to confirm CI on the locked set, then US-202 (Modbus TCP Virtual PLC and `docs/tag-map.md`).
+- **2026-11-23 (Session 1, CI):** CI on `d60d957` confirmed green with the locked set, closing US-207; the run had been stuck behind pre-gate run #2, so the workflow's `concurrency` group was moved from workflow level to the `deploy` job (per target PC) so the test job can never queue behind a stuck deploy. Next: US-202 (Modbus TCP Virtual PLC and `docs/tag-map.md`).
