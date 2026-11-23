@@ -1,13 +1,18 @@
 """Virtual PLC logic, protocol-independent.
 
 The PLC owns the L0 plant model as its I/O image. Each ``scan()`` steps the plant and latches one
-consistent snapshot; every protocol (Modbus now, OPC UA in US-203) serves that same snapshot, so
-all registers read in one request come from the same tick.
+consistent snapshot (``ProcessImage``); Modbus and OPC UA both serve that same snapshot, so every
+value read in one request comes from the same tick and both protocols agree.
+
+Commands (power setpoint, fault trigger/clear) go through the engineering-unit methods here;
+protocol adapters only translate encodings and map errors to their own status codes.
 """
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
+from datetime import datetime
 
 from simulators.citadel_reactor import CitadelReactor
 from simulators.virtual_plc.tag_map import (
@@ -32,18 +37,20 @@ class PlcWriteError(Exception):
 
 
 class IllegalAddressError(PlcWriteError):
-    """No writable point at that address (maps to Modbus exception 02)."""
+    """No writable point at that address (Modbus exception 02)."""
 
 
 class IllegalValueError(PlcWriteError):
-    """Value outside the point's allowed range (maps to Modbus exception 03)."""
+    """Value outside the point's allowed range (Modbus exception 03, OPC UA BadOutOfRange)."""
 
 
 @dataclass(frozen=True, slots=True)
 class ProcessImage:
-    """One latched scan: engineering values plus their encoded input registers."""
+    """One latched scan: engineering values, heartbeat, and the encoded input registers."""
 
     scan_count: int
+    heartbeat: int
+    timestamp: datetime
     values: dict[str, float]
     input_registers: tuple[int, ...]
 
@@ -72,44 +79,77 @@ class VirtualPlc:
         return self._image
 
     def _latch(self, scan_count: int) -> ProcessImage:
-        values = {r.tag: r.value for r in self._reactor.read()}
+        readings = self._reactor.read()
+        values = {r.tag: r.value for r in readings}
         heartbeat = scan_count % (INT16_MAX + 1)
         registers = [0] * len(INPUT_REGISTERS)
         for point in INPUT_REGISTERS:
             value = float(heartbeat) if point.tag == PLC_HEARTBEAT_COUNT else values[point.tag]
             registers[point.address] = encode_int16(value, point.scale)
-        return ProcessImage(scan_count=scan_count, values=values, input_registers=tuple(registers))
+        return ProcessImage(
+            scan_count=scan_count,
+            heartbeat=heartbeat,
+            timestamp=readings[0].timestamp,
+            values=values,
+            input_registers=tuple(registers),
+        )
 
-    # --- holding registers ---------------------------------------------------------------
+    # --- commands (engineering units, protocol-neutral) -------------------------------------
+
+    @property
+    def power_setpoint_pct(self) -> float:
+        return self._reactor.power_setpoint_pct
+
+    @staticmethod
+    def validate_power_setpoint(pct: float) -> None:
+        if math.isnan(pct) or not POWER_SETPOINT_MIN_PCT <= pct <= POWER_SETPOINT_MAX_PCT:
+            raise IllegalValueError(
+                f"{POWER_SETPOINT_PCT} {pct} outside {POWER_SETPOINT_MIN_PCT}-{POWER_SETPOINT_MAX_PCT} %"
+            )
+
+    def set_power_setpoint(self, pct: float) -> None:
+        self.validate_power_setpoint(pct)
+        self._reactor.set_power_setpoint(pct)
+
+    @property
+    def fault_active(self) -> bool:
+        return self._reactor.fault_active
+
+    def trigger_fault(self) -> float:
+        """Start the vault radiation fault; returns the fault level (uSv/h). Idempotent."""
+        return self._reactor.trigger_fault()
+
+    def clear_fault(self) -> None:
+        self._reactor.clear_fault()
+
+    # --- Modbus holding registers ----------------------------------------------------------
 
     def holding_register(self, address: int) -> int:
         point = self._holding_point(address)
-        return encode_int16(self._reactor.power_setpoint_pct, point.scale)
+        return encode_int16(self.power_setpoint_pct, point.scale)
 
     def validate_holding_write(self, address: int, register: int) -> float:
         """Check a write without applying it; returns the decoded engineering value."""
         point = self._holding_point(address)
         value = decode_int16(register, point.scale)
-        if not POWER_SETPOINT_MIN_PCT <= value <= POWER_SETPOINT_MAX_PCT:
-            raise IllegalValueError(
-                f"{point.tag} {value} outside {POWER_SETPOINT_MIN_PCT}-{POWER_SETPOINT_MAX_PCT} %"
-            )
+        self.validate_power_setpoint(value)
         return value
 
     def write_holding_register(self, address: int, register: int) -> None:
-        self._reactor.set_power_setpoint(self.validate_holding_write(address, register))
+        self.set_power_setpoint(self.validate_holding_write(address, register))
 
-    def _holding_point(self, address: int) -> RegisterPoint:
+    @staticmethod
+    def _holding_point(address: int) -> RegisterPoint:
         point = point_by_tag(HOLDING_REGISTERS, POWER_SETPOINT_PCT)
         if address != point.address:
             raise IllegalAddressError(f"No holding register at address {address}")
         return point
 
-    # --- coils ---------------------------------------------------------------------------
+    # --- Modbus coils ------------------------------------------------------------------------
 
     def coil(self, address: int) -> bool:
         self._coil_point(address)
-        return self._reactor.fault_active
+        return self.fault_active
 
     def validate_coil_write(self, address: int) -> None:
         self._coil_point(address)
@@ -117,9 +157,9 @@ class VirtualPlc:
     def write_coil(self, address: int, value: bool) -> None:
         self._coil_point(address)
         if value:
-            self._reactor.trigger_fault()
+            self.trigger_fault()
         else:
-            self._reactor.clear_fault()
+            self.clear_fault()
 
     @staticmethod
     def _coil_point(address: int) -> None:

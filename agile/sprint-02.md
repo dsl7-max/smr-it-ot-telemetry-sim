@@ -52,15 +52,15 @@
 - [x] pytest: scaling round-trips, register addresses match `tag-map.md` (the doc is parsed by a test), and a coil write triggers the simulator fault; a real server and client run in-process on an ephemeral port (59 new tests, 123 total)
 - [x] Security note in `tag-map.md`: Modbus has no authentication, so a writable coil is protected only by the PC #2 firewall rule (allows PC #3 only)
 
-## US-203: Virtual PLC — OPC UA :4840 · *3 h*
+## US-203: Virtual PLC — OPC UA :4840 · *3 h* ✅
 *As an HMI developer, I want the same tags over OPC UA so that FactoryTalk Optix can browse typed, named nodes.*
 
-- [ ] OPC UA server (asyncua) in the same PLC process; namespace `urn:citadel:plant`
-- [ ] Address space: `Objects/Citadel/Reactor/*`, `Objects/Citadel/Radiation/{Vault,ControlRoom}/*`; values are native `Double` with an engineering-units property
-- [ ] Writable `PowerSetpoint` node and a `TriggerFault` / `ClearFault` method
-- [ ] Node IDs documented in `/docs/tag-map.md` next to the Modbus addresses (one table, both protocols)
-- [ ] MVP security: `SecurityPolicy None` + anonymous; `Basic256Sha256` Sign & Encrypt deferred to US-503 (see Open Question 3)
-- [ ] pytest: an in-process client reads every node, values match the Modbus side for the same tick, and the method triggers the fault
+- [x] OPC UA server (asyncua) in the same PLC process; namespace `urn:citadel:plant` (ns=2), endpoint `opc.tcp://<host>:4840/citadel/plant`; nodes are updated from the same latched scan as Modbus after every scan, so subscriptions fire per scan
+- [x] Address space: `Objects/Citadel/Reactor/*`, `Objects/Citadel/Radiation/{Vault,ControlRoom}/*`, plus `Citadel/PLC/PLC_HEARTBEAT_COUNT` (Int32); values are native `Double` with `EngineeringUnits` (UN/CEFACT) and `EURange` properties; string NodeIds equal the tag names
+- [x] Writable `POWER_SETPOINT_PCT` node (named per the tag rule rather than `PowerSetpoint`); out of range or NaN returns `BadOutOfRange` and is not applied. `TriggerFault` (returns the fault level) and `ClearFault` methods on `Radiation/Vault`, plus a read-only `FAULT_TRIGGER` Boolean
+- [x] Node IDs documented in `/docs/tag-map.md` next to the Modbus addresses (one table, both protocols); the doc-sync test now checks the NodeId and type columns too
+- [x] MVP security: `SecurityPolicy None` + anonymous; `Basic256Sha256` Sign & Encrypt deferred to US-503 (see Open Question 3)
+- [x] pytest: an in-process client reads every node, values match the Modbus side for the same tick, and the method triggers the fault; also covers subscriptions, rejected writes, read-only nodes and the EU properties (141 tests total)
 
 ## US-204: Containerize the Plant Floor · *2 h*
 *As the builder, I want the plant packaged as one self-contained image so that it runs on air-gapped PC #2 with no downloads.*
@@ -109,3 +109,4 @@
 - **2026-11-23 (Session 1):** Closed US-207 (pytest 9.2.0, pymodbus 3.16.2, asyncua 2.1.0, plus a 19-package `constraints.txt` transitive lock) and US-201: a stateful coupled plant model with six unit-suffixed tags, physical radiation zones (vault 1.5 → 25–80 µSv/h on fault, control room steady at 0.20), and a code/CLI fault trigger, verified by 64 passing tests. Next: push to confirm CI on the locked set, then US-202 (Modbus TCP Virtual PLC and `docs/tag-map.md`).
 - **2026-11-23 (Session 1, CI):** CI on `d60d957` confirmed green with the locked set, closing US-207; the run had been stuck behind pre-gate run #2, so the workflow's `concurrency` group was moved from workflow level to the `deploy` job (per target PC) so the test job can never queue behind a stuck deploy. Next: US-202 (Modbus TCP Virtual PLC and `docs/tag-map.md`).
 - **2026-11-23 (Session 2):** Closed US-202: a Virtual PLC (`python -m simulators.virtual_plc`) that serves the reactor over Modbus TCP :5020 with a doc-verified register map (`docs/tag-map.md`), a writable power setpoint, a fault coil, a heartbeat and all-or-nothing multi-writes, built on pymodbus 3.16's `SimDevice` action hook (the old datastore API is deprecated). A live smoke run on PC #1 triggered a vault fault over the wire (1.5 → 52 µSv/h, control room steady at 0.21); next is US-203 (OPC UA :4840 in the same process).
+- **2026-11-23 (Session 3):** Closed US-203: the Virtual PLC now also serves OPC UA on :4840 (`urn:citadel:plant`) from the same latched scan as Modbus, with typed nodes, engineering-unit metadata, a validated writable setpoint, `TriggerFault`/`ClearFault` methods, and NodeIds added to the test-enforced `docs/tag-map.md` (141 tests; a live run showed all 7 tags agreeing across both protocols on the same scan). Next: US-204 + US-206 (containerize the plant on python:3.12-slim with digest-pinned images, ports 502:5020 and 4840:4840).

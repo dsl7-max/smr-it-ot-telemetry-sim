@@ -100,3 +100,56 @@ def point_by_tag(points: tuple[RegisterPoint, ...], tag: str) -> RegisterPoint:
         if point.tag == tag:
             return point
     raise KeyError(tag)
+
+
+# --- OPC UA address space (US-203) -------------------------------------------------------------
+# NodeIds are string identifiers equal to the tag name, in namespace OPCUA_NAMESPACE_URI.
+# Folder paths are browse paths under the standard Objects folder.
+
+OPCUA_NAMESPACE_URI = "urn:citadel:plant"
+OPCUA_ENDPOINT_PATH = "/citadel/plant"
+
+OPCUA_DOUBLE = "Double"
+OPCUA_INT32 = "Int32"
+OPCUA_BOOLEAN = "Boolean"
+
+REACTOR_FOLDER = ("Citadel", "Reactor")
+VAULT_FOLDER = ("Citadel", "Radiation", "Vault")
+CONTROL_ROOM_FOLDER = ("Citadel", "Radiation", "ControlRoom")
+PLC_FOLDER = ("Citadel", "PLC")
+
+TRIGGER_FAULT_METHOD = "TriggerFault"
+CLEAR_FAULT_METHOD = "ClearFault"
+
+
+@dataclass(frozen=True, slots=True)
+class OpcUaVariable:
+    """One OPC UA variable: NodeId string (= tag), folder path, built-in data type, writability."""
+
+    tag: str
+    folder: tuple[str, ...]
+    data_type: str
+    writable: bool = False
+
+    @property
+    def node_id(self) -> str:
+        return self.tag
+
+
+OPCUA_VARIABLES: tuple[OpcUaVariable, ...] = (
+    OpcUaVariable(REACTOR_POWER_PCT, REACTOR_FOLDER, OPCUA_DOUBLE),
+    OpcUaVariable(CORE_TEMP_C, REACTOR_FOLDER, OPCUA_DOUBLE),
+    OpcUaVariable(HE_LOOP_PRESS_BAR, REACTOR_FOLDER, OPCUA_DOUBLE),
+    OpcUaVariable(HE_FLOW_KGS, REACTOR_FOLDER, OPCUA_DOUBLE),
+    OpcUaVariable(POWER_SETPOINT_PCT, REACTOR_FOLDER, OPCUA_DOUBLE, writable=True),
+    OpcUaVariable(VAULT_RAD_USVH, VAULT_FOLDER, OPCUA_DOUBLE),
+    OpcUaVariable(FAULT_TRIGGER, VAULT_FOLDER, OPCUA_BOOLEAN),
+    OpcUaVariable(CONTROL_ROOM_RAD_USVH, CONTROL_ROOM_FOLDER, OPCUA_DOUBLE),
+    OpcUaVariable(PLC_HEARTBEAT_COUNT, PLC_FOLDER, OPCUA_INT32),
+)
+
+# (method name = NodeId string, folder it lives on)
+OPCUA_METHODS: tuple[tuple[str, tuple[str, ...]], ...] = (
+    (TRIGGER_FAULT_METHOD, VAULT_FOLDER),
+    (CLEAR_FAULT_METHOD, VAULT_FOLDER),
+)

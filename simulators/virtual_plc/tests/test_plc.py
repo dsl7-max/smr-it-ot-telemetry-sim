@@ -143,18 +143,19 @@ def test_unmapped_coil_rejected() -> None:
 
 def test_config_defaults() -> None:
     cfg = PlcConfig.from_env({})
-    assert cfg == PlcConfig(bind_host="0.0.0.0", modbus_port=5020, seed=None, tick_seconds=1.0)
+    assert cfg == PlcConfig(bind_host="0.0.0.0", modbus_port=5020, opcua_port=4840, seed=None, tick_seconds=1.0)
 
 
 def test_config_from_env() -> None:
     cfg = PlcConfig.from_env(
-        {"PLC_BIND_HOST": "127.0.0.1", "PLC_MODBUS_PORT": "1502", "SIM_SEED": "42", "SIM_TICK_SECONDS": "0.5"}
+        {"PLC_BIND_HOST": "127.0.0.1", "PLC_MODBUS_PORT": "1502", "PLC_OPCUA_PORT": "14840",
+         "SIM_SEED": "42", "SIM_TICK_SECONDS": "0.5"}
     )
-    assert cfg == PlcConfig("127.0.0.1", 1502, 42, 0.5)
+    assert cfg == PlcConfig("127.0.0.1", 1502, 14840, 42, 0.5)
 
 
 @pytest.mark.parametrize(
-    "env", [{"PLC_MODBUS_PORT": "0"}, {"PLC_MODBUS_PORT": "70000"}, {"SIM_TICK_SECONDS": "0"}, {"SIM_SEED": "x"}]
+    "env", [{"PLC_OPCUA_PORT": "5020"}, {"PLC_OPCUA_PORT": "0"}, {"PLC_MODBUS_PORT": "0"}, {"PLC_MODBUS_PORT": "70000"}, {"SIM_TICK_SECONDS": "0"}, {"SIM_SEED": "x"}]
 )
 def test_config_rejects_bad_values(env: dict[str, str]) -> None:
     with pytest.raises(ValueError):

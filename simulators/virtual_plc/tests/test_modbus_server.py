@@ -10,8 +10,9 @@ import pytest
 from pymodbus.client import AsyncModbusTcpClient
 
 from simulators.citadel_reactor import CitadelReactor
-from simulators.virtual_plc.modbus_server import ModbusPlcServer, scan_loop
+from simulators.virtual_plc.modbus_server import ModbusPlcServer
 from simulators.virtual_plc.plc import VirtualPlc
+from simulators.virtual_plc.runtime import scan_loop
 from simulators.virtual_plc.tag_map import (
     INPUT_REGISTERS,
     MODBUS_DEVICE_ID,

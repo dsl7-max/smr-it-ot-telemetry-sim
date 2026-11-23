@@ -7,9 +7,7 @@ validate and apply them to the PLC first, returning a Modbus exception code if r
 
 from __future__ import annotations
 
-import asyncio
 import functools
-from collections.abc import Awaitable, Callable
 
 from pymodbus.constants import ExcCodes
 from pymodbus.server import ModbusTcpServer
@@ -29,8 +27,6 @@ FC_WRITE_REGISTERS = 16
 
 COIL_FCS = frozenset({FC_READ_COILS, FC_WRITE_COIL, FC_WRITE_COILS})
 HOLDING_FCS = frozenset({FC_READ_HOLDING, FC_WRITE_REGISTER, FC_WRITE_REGISTERS, 22, 23})
-
-Sleeper = Callable[[float], Awaitable[None]]
 
 
 async def plc_action(
@@ -117,16 +113,3 @@ class ModbusPlcServer:
     async def stop(self) -> None:
         await self._server.shutdown()
 
-
-async def scan_loop(
-    plc: VirtualPlc,
-    tick_seconds: float,
-    stop: asyncio.Event,
-    sleep: Sleeper = asyncio.sleep,
-) -> None:
-    """Scan the PLC every ``tick_seconds`` (simulated dt = tick) until ``stop`` is set."""
-    if tick_seconds <= 0:
-        raise ValueError("tick_seconds must be > 0")
-    while not stop.is_set():
-        await sleep(tick_seconds)
-        plc.scan(tick_seconds)

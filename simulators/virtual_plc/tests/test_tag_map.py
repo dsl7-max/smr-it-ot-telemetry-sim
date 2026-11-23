@@ -12,6 +12,7 @@ from simulators.virtual_plc.tag_map import (
     INPUT_REGISTERS,
     INT16_MAX,
     INT16_MIN,
+    OPCUA_VARIABLES,
     PLC_HEARTBEAT_COUNT,
     RegisterPoint,
     decode_int16,
@@ -101,7 +102,7 @@ def _doc_rows() -> dict[str, list[str]]:
     rows: dict[str, list[str]] = {}
     for line in DOC.read_text(encoding="utf-8").splitlines():
         cells = [c.strip() for c in line.strip().strip("|").split("|")]
-        if len(cells) == 9 and (m := re.fullmatch(r"`([A-Z0-9_]+)`", cells[0])):
+        if len(cells) == 11 and (m := re.fullmatch(r"`([A-Z0-9_]+)`", cells[0])):
             rows[m.group(1)] = cells
     return rows
 
@@ -115,7 +116,7 @@ def test_doc_lists_exactly_the_mapped_points() -> None:
 def test_doc_register_rows_match_code(table: str, points: tuple[RegisterPoint, ...]) -> None:
     rows = _doc_rows()
     for p in points:
-        _tag, unit, doc_table, _fc, address, modicon, scale, _access, _range = rows[p.tag]
+        _tag, unit, doc_table, _fc, address, modicon, scale, _access, _node, _type, _range = rows[p.tag]
         assert doc_table == table, p.tag
         assert int(address) == p.address, p.tag
         assert int(modicon) == _MODICON_BASE[table] + p.address, p.tag
@@ -130,3 +131,18 @@ def test_doc_coil_rows_match_code() -> None:
         assert doc_table == "Coil"
         assert int(address) == c.address
         assert int(modicon) == _MODICON_BASE["Coil"] + c.address
+
+
+def test_doc_opcua_columns_match_code() -> None:
+    rows = _doc_rows()
+    assert {v.tag for v in OPCUA_VARIABLES} == set(rows)
+    for var in OPCUA_VARIABLES:
+        node_id, data_type = rows[var.tag][8], rows[var.tag][9]
+        assert node_id == f"`ns=2;s={var.node_id}`", var.tag
+        assert data_type == var.data_type, var.tag
+
+
+def test_doc_access_column_matches_opcua_writability() -> None:
+    rows = _doc_rows()
+    for var in OPCUA_VARIABLES:
+        assert ("W" in rows[var.tag][7]) == (var.writable or var.tag == "FAULT_TRIGGER"), var.tag
