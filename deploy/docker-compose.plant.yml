@@ -1,0 +1,25 @@
+# PC #2 — Citadel Plant Floor (Purdue L0–1). Runner labels: [self-hosted, windows, citadel-plant]
+# Run manually: docker compose -f deploy/docker-compose.plant.yml up -d --build
+# Exposes field protocols to the Control Room (PC #3) only: Modbus TCP :502, OPC UA :4840.
+name: citadel-plant
+
+services: {}
+  # --- US-103 (Sprint 1): enable once /simulators has a Dockerfile ---
+  # citadel-reactor-sim:
+  #   build: ../simulators
+  #   container_name: plant-reactor-sim
+  #   restart: unless-stopped
+  #   environment:
+  #     SIM_TICK_SECONDS: "1"
+  #     SIM_SEED: ""                  # set for deterministic runs
+  #
+  # --- Sprint 2: Virtual PLC (reads sim, serves field protocols) ---
+  # virtual-plc:
+  #   build: ../simulators/virtual_plc
+  #   container_name: plant-virtual-plc
+  #   restart: unless-stopped
+  #   ports:
+  #     - "502:502"     # Modbus TCP  -> PC #3
+  #     - "4840:4840"   # OPC UA      -> PC #3
+  #   depends_on:
+  #     - citadel-reactor-sim

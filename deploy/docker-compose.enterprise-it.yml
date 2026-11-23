@@ -1,0 +1,58 @@
+# PC #4 — Enterprise IT & Analytics (Purdue L4, behind L3.5 router firewall).
+# Runner labels: [self-hosted, windows, enterprise-it]
+# Run manually: docker compose -f deploy/docker-compose.enterprise-it.yml --env-file deploy/.env up -d --build
+name: citadel-enterprise-it
+
+services:
+  timescaledb:
+    image: timescale/timescaledb:2.17.2-pg16
+    container_name: it-timescaledb
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-citadel}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
+      POSTGRES_DB: ${POSTGRES_DB:-citadel}
+    ports:
+      - "5432:5432"
+    volumes:
+      - tsdb-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  grafana:
+    image: grafana/grafana-oss:11.3.0
+    container_name: it-grafana
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?GRAFANA_ADMIN_PASSWORD must be set}
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana-data:/var/lib/grafana
+    depends_on:
+      timescaledb:
+        condition: service_healthy
+
+  # --- Sprint 3: MQTT -> TimescaleDB ingestion worker ---
+  # it-ingestion:
+  #   build: ../it-ingestion
+  #   container_name: it-ingestion
+  #   restart: unless-stopped
+  #   environment:
+  #     MQTT_HOST: ${CONTROL_ROOM_HOST}   # PC #3 static IP, across the L3.5 firewall
+  #     MQTT_PORT: "1883"
+  #     PGHOST: timescaledb
+  #     PGUSER: ${POSTGRES_USER:-citadel}
+  #     PGPASSWORD: ${POSTGRES_PASSWORD}
+  #     PGDATABASE: ${POSTGRES_DB:-citadel}
+  #   depends_on:
+  #     timescaledb:
+  #       condition: service_healthy
+
+volumes:
+  tsdb-data:
+  grafana-data:

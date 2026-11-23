@@ -1,0 +1,70 @@
+# Zero-touch pipeline (Citadel 4-PC topology):
+#   PC #1 git push -> pytest (GitHub-hosted) -> deploy PC #2 plant, PC #3 control room, PC #4 enterprise IT
+name: citadel-test-and-deploy
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  test:
+    name: Unit tests (pytest)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install dev dependencies
+        run: pip install -r requirements-dev.txt
+      - name: Run pytest
+        # Exit code 5 = "no tests collected" — tolerated until US-103 lands the first tests. Remove then.
+        run: pytest -q || [ $? -eq 5 ]
+
+  deploy:
+    name: Deploy ${{ matrix.name }}
+    needs: test
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: "PC #2 Citadel Plant (L0-1)"
+            label: citadel-plant
+            compose: deploy/docker-compose.plant.yml
+          - name: "PC #3 Control Room (L2-3)"
+            label: control-room
+            compose: deploy/docker-compose.control-room.yml
+          - name: "PC #4 Enterprise IT (L4)"
+            label: enterprise-it
+            compose: deploy/docker-compose.enterprise-it.yml
+    runs-on: [self-hosted, windows, "${{ matrix.label }}"]
+    defaults:
+      run:
+        shell: powershell
+    env:
+      COMPOSE_FILE: ${{ matrix.compose }}
+      # Secrets/vars are harmless on nodes whose compose file doesn't reference them.
+      PLANT_HOST: ${{ vars.PLANT_HOST }}
+      CONTROL_ROOM_HOST: ${{ vars.CONTROL_ROOM_HOST }}
+      POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+      GRAFANA_ADMIN_PASSWORD: ${{ secrets.GRAFANA_ADMIN_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: docker compose up
+        run: |
+          $services = docker compose config --services
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          if (-not $services) { Write-Host "No services defined yet in $env:COMPOSE_FILE - skipping."; exit 0 }
+          docker compose up -d --build --remove-orphans
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Show containers
+        run: docker compose ps
