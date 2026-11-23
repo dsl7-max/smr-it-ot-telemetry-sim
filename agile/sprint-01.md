@@ -30,7 +30,7 @@
 - [x] `/agile/backlog.md` created and re-baselined to a 6-week MVP ending Dec 31, 2026 (Sprints 2–6, incl. Week 6 demo script)
 - [x] `README.md` explains project purpose, topology, and how to clone/run
 
-## US-103: "Hello World" Citadel Reactor Sensor Simulator & Pytest Unit Test
+## US-103: "Hello World" Citadel Reactor Sensor Simulator & Pytest Unit Test ✅
 *As an OT engineer, I want simulated reactor telemetry so that downstream layers have realistic data to consume.*
 
 - [x] `/simulators` contains a type-hinted Python module generating core temp (°C), helium loop pressure (bar), and radiation monitor (µSv/h) readings — `simulators/citadel_reactor.py`
@@ -38,7 +38,7 @@
 - [x] Simulator runnable from CLI (`python -m simulators.citadel_reactor --seed 42 --count 5 --interval 1`), UTF-8 JSON lines
 - [x] `pytest` unit tests cover value bounds, data shape, and deterministic output with a fixed seed (26 tests)
 - [x] `pytest` passes locally on PC #1
-- [ ] `pytest` passes in the GitHub Actions `test` job (empty-test-suite exception removed)
+- [x] `pytest` passes in the GitHub Actions `test` job (empty-test-suite exception removed) — green on `714099d`
 
 ## US-104: 4-PC Network Topology & Static IP Verification
 *As the builder, I want verified static IPs and firewall rules so that data flows L0 → L4 only through approved ports.*
@@ -60,7 +60,7 @@
 - [ ] Self-hosted runner on PC #3 with labels `self-hosted, windows, control-room`
 - [ ] Self-hosted runner on PC #4 with labels `self-hosted, windows, enterprise-it`
 - [ ] Repository secrets (`POSTGRES_PASSWORD`, `GRAFANA_ADMIN_PASSWORD`) and variables (`PLANT_HOST`, `CONTROL_ROOM_HOST`) configured
-- [ ] Push to `main` runs pytest and blocks deploy on failure
+- [x] Push to `main` runs pytest and blocks deploy on failure (deploy `needs: test`; verified green on `714099d`)
 - [ ] Successful push deploys all 3 stacks with no manual steps; `docker compose ps` healthy on PC #3 and PC #4
 
 ---
@@ -71,3 +71,4 @@
 - **2026-11-23 (Session 2):** Re-baselined to the 4-PC Citadel architecture (Plant Floor L0–1, Control Room L2–3, Enterprise IT L4 behind the L3.5 firewall) with three compose files, a matrix deploy to three runner labels, the architecture diagram, and a 6-week backlog to the Dec 31 MVP; US-102 closed, and US-101 left open pending VS Code extensions and a Git identity. Next: create the private GitHub repo, register the three self-hosted runners, and build the US-103 reactor simulator.
 - **2026-11-23 (Session 3):** Installed the VS Code extensions, set the Git identity (`dsl7-max`), made the initial commit, and pushed `main` to the private repo `dsl7-max/valar-it-ot-sim`, closing US-101 and US-102. Next: build the US-103 Citadel reactor simulator with pytest, then register the three self-hosted runners.
 - **2026-11-23 (Session 4):** Built the US-103 Citadel reactor simulator (CORE_TEMP °C, HE_LOOP_PRESS bar, RAD_MON_01–03 µSv/h) with a seeded, clock-injected design, a JSON-lines CLI, and 26 passing pytest tests, and made CI fail on an empty test suite. Next: push to confirm the GitHub Actions `test` job passes, then start US-104 network documentation and register the self-hosted runners.
+- **2026-11-23 (Session 5):** The GitHub Actions `test` job passed on `714099d`, closing US-103, and the pytest gate in front of deploy is confirmed working. Next: US-104 network documentation (hostnames, static IPs, L3.5 firewall rules) and registering the self-hosted runners on PC #2–#4.
