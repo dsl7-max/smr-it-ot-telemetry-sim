@@ -6,7 +6,7 @@
 | Sprint | Dates (2026) | Theme | Detail |
 |--------|--------------|-------|--------|
 | 1 | Nov 21 – Nov 29 | Foundation, Topology & Pipeline | ✅ Closed Nov 23 — see `sprint-01.md` |
-| 2 | Nov 30 – Dec 6 | Citadel Plant Floor: Simulator + Virtual PLC | below |
+| 2 | Nov 30 – Dec 6 | Citadel Plant Floor: Simulator + Virtual PLC | ✅ Closed Nov 23 — see `sprint-02.md` |
 | 3 | Dec 7 – Dec 13 | Control Room Gateway + MQTT → Enterprise Ingestion | below |
 | 4 | Dec 14 – Dec 20 | FactoryTalk Optix HMI + Grafana Dashboards | below |
 | 5 | Dec 21 – Dec 27 | Alarms, Scenarios & Hardening (holiday-light week) | below |
@@ -15,13 +15,13 @@
 ---
 
 ## Sprint 2 — Citadel Plant Floor (PC #2, L0–1) · detail in `sprint-02.md`
-- [ ] **US-201** Coupled reactor physics (power → core temp → He pressure; flow cooling) + physical radiation zones `VAULT_RAD_USVH` (~1.5, fault 25–80 µSv/h) / `CONTROL_ROOM_RAD_USVH` (~0.20 µSv/h) + fault trigger.
-- [ ] **US-202** Virtual PLC exposing plant tags over Modbus TCP :502 (register map in `/docs/tag-map.md`).
-- [ ] **US-203** Same tags over OPC UA :4840 (documented node IDs).
-- [ ] **US-204** Containerize the Plant Floor (air-gap-ready, non-root image); enable in `docker-compose.plant.yml`.
-- [ ] **US-205** Protocol integration tests + `plant_probe` CLI (Modbus/OPC UA read-back).
-- [ ] **US-206** Pin all Docker images by SHA-256 digest.
-- [ ] **US-207** Lock exact dependency versions (`pytest` and new runtime deps).
+- [x] **US-201** Coupled reactor physics (power → core temp → He pressure; flow cooling) + physical radiation zones `VAULT_RAD_USVH` (~1.5, fault 25–80 µSv/h) / `CONTROL_ROOM_RAD_USVH` (~0.20 µSv/h) + fault trigger.
+- [x] **US-202** Virtual PLC exposing plant tags over Modbus TCP :502 (register map in `/docs/tag-map.md`).
+- [x] **US-203** Same tags over OPC UA :4840 (documented node IDs).
+- [x] **US-204** Containerize the Plant Floor (air-gap-ready, non-root image); enable in `docker-compose.plant.yml`.
+- [x] **US-205** Protocol integration tests + `plant_probe` CLI (Modbus/OPC UA read-back).
+- [x] **US-206** Pin all Docker images by SHA-256 digest.
+- [x] **US-207** Lock exact dependency versions (`pytest` and new runtime deps).
 
 ## Sprint 3 — Control Room Gateway & Enterprise Ingestion (PC #3 → PC #4)
 - [ ] **US-301** OT Gateway on PC #3: poll Modbus from PC #2, publish JSON to MQTT topic hierarchy (`citadel/<area>/<tag>`).
