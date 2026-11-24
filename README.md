@@ -1,6 +1,37 @@
 # Citadel — End-to-End IT/OT Simulation Sandbox
 
-A 4-PC portfolio lab that simulates a helium-cooled reactor plant and moves its telemetry up the Purdue Model — field protocols (Modbus TCP, OPC UA) → operator HMI (FactoryTalk Optix) → MQTT → across a Level 3.5 firewall → TimescaleDB + Grafana — with zero-touch `git push` deployment to every node.
+A 4-PC portfolio lab that simulates a helium-cooled reactor plant and moves its telemetry up the Purdue Model — field protocols (**Modbus TCP**, **OPC UA**) → operator HMI (**FactoryTalk Optix**) → **MQTT** → across a **Level 3.5 firewall** → **TimescaleDB + Grafana** — with zero-touch `git push` deployment to every node.
+
+```mermaid
+flowchart LR
+    subgraph PC2["PC #2: Citadel Plant Floor (L0–1 • Air-Gapped OT 10.10.0.10) [Sprint 2 - Live]"]
+        direction TB
+        SIM["Helium-Cooled Reactor Simulator<br/>& Fault Trigger Engine"]
+        PLC["Virtual PLC (Unit-Suffixed Tags)<br/>Modbus :502 | OPC UA :4840"]
+        SIM --> PLC
+    end
+
+    subgraph PC3["PC #3: Citadel Control Room (L2–3 • Air-Gapped OT 10.10.0.20) [Sprint 3]"]
+        direction TB
+        HMI["FactoryTalk Optix HMI"]
+        GW["OT Gateway & Mosquitto MQTT (:1883)"]
+        HMI <--> GW
+    end
+
+    subgraph PC4["PC #4: Enterprise IT & Analytics (L4 • Dual-NIC 10.10.0.30 / 192.168.1.244) [Sprint 3–4]"]
+        direction TB
+        ING["Level 3.5 Ingestion Worker<br/>(Buffering, Replay & Lineage)"]
+        TSDB["TimescaleDB (:5432)"]
+        GRAF["Grafana Dashboards (:3000)"]
+        ING --> TSDB --> GRAF
+    end
+
+    PLC -->|"Modbus TCP / OPC UA"| HMI
+    PLC -->|"Modbus TCP / OPC UA"| GW
+    GW -->|"Unidirectional MQTT across L3.5 Boundary"| ING
+```
+
+## Lab Topology
 
 | PC | Role | Purdue | Network | Runs |
 |----|------|--------|---------|------|
@@ -10,6 +41,13 @@ A 4-PC portfolio lab that simulates a helium-cooled reactor plant and moves its 
 | #4 | Enterprise IT & Analytics | L4 | Dual-NIC 192.168.1.244 + 10.10.0.30 | Ingestion worker, TimescaleDB (:5432), Grafana (:3000), Actions runner / jump-host |
 
 Diagram: [`docs/architecture.md`](docs/architecture.md) · Network & firewall: [`docs/network.md`](docs/network.md) · Compliance & interview guide: [`docs/compliance-and-interview-guide.md`](docs/compliance-and-interview-guide.md) · Plan: [`agile/backlog.md`](agile/backlog.md) · Sprint: [`agile/sprint-01.md`](agile/sprint-01.md)
+
+## Build Progress
+
+* **Sprint 1 — Lab Foundation, Network Segmentation & Backlog** *(Complete)*
+* **Sprint 2 — Containerized Plant Floor & Virtual PLC (PC #2)** *(Complete)*: Digest-pinned container bundling the helium-cooled reactor simulator, control room radiation zones, deterministic fault triggers, and unit-suffixed tags over **Modbus TCP (`:502`)** and **OPC UA (`:4840`)**.
+* **Sprint 3 — Control Room HMI, MQTT Bridge & Level 3.5 Replay Ingestion (PC #3 & PC #4)** *(Next)*: FactoryTalk Optix operator screens, Mosquitto MQTT broker, store-and-forward replay buffer, and TimescaleDB/Grafana dashboards.
+* **Sprint 4 — Zero-Touch Multi-Node CI/CD Runner Activation** *(Planned)*: Self-hosted runner on dual-NIC PC #4 deploying across air-gapped jump hosts (`US-406`).
 
 ## Quick Start (PC #1)
 
