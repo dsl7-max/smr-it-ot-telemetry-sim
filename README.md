@@ -14,8 +14,8 @@ Diagram: [`docs/architecture.md`](docs/architecture.md) · Network & firewall: [
 ## Quick Start (PC #1)
 
 ```powershell
-git clone <repo-url>
-cd valar-it-ot-sim
+git clone https://github.com/dsl7-max/smr-it-ot-sim.git
+cd smr-it-ot-sim
 python -m venv .venv; .\.venv\Scripts\Activate.ps1
 pip install -r requirements-dev.txt
 pytest
