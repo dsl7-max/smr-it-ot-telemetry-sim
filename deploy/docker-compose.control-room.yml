@@ -7,7 +7,7 @@ name: citadel-control-room
 
 services:
   mosquitto:
-    image: eclipse-mosquitto:2.0.20
+    image: eclipse-mosquitto:2.0.20@sha256:21421af7b32bf9ce508e9090c8eb13bb81f410ca778dc205506180a6f862d0eb  # US-206 digest pin
     container_name: cr-mosquitto
     restart: unless-stopped
     ports:

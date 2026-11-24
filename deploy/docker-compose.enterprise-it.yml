@@ -5,7 +5,7 @@ name: citadel-enterprise-it
 
 services:
   timescaledb:
-    image: timescale/timescaledb:2.17.2-pg16
+    image: timescale/timescaledb:2.17.2-pg16@sha256:4e459e217f00cbb09920c34d245501e63427e6767a495de57ce76823ff280f12  # US-206 digest pin
     container_name: it-timescaledb
     restart: unless-stopped
     environment:
@@ -23,7 +23,7 @@ services:
       retries: 5
 
   grafana:
-    image: grafana/grafana-oss:11.3.0
+    image: grafana/grafana-oss:11.3.0@sha256:a0f881232a6fb71a0554a47d0fe2203b6888fe77f4cefb7ea62bed7eb54e13c3  # US-206 digest pin
     container_name: it-grafana
     restart: unless-stopped
     environment:

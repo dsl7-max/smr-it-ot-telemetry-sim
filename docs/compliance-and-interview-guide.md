@@ -42,10 +42,10 @@
 
 | Aspect | Citadel implementation | Principle | Where it falls short of nuclear practice |
 |--------|------------------------|-----------|------------------------------------------|
-| Version-pinned images | `eclipse-mosquitto:2.0.20`, `timescaledb:2.17.2-pg16`, `grafana-oss:11.3.0` | **Configuration management / baseline control** (73.54, NEI 08-09) | **Tags can be re-pointed.** True immutability needs **digest pinning** (`image@sha256:…`) plus a recorded SBOM. |
+| Digest-pinned images (US-206) | Every vendor image and the plant's Python base use `name:tag@sha256:<index digest>` (e.g. `python:3.12.16-slim-trixie@sha256:5e2b…`); the tag stays for readability, the digest is what Docker pulls | **Configuration management / baseline control** (73.54, NEI 08-09) | Digest = exact bytes, but no **SBOM**, no image **signature** verification, no vulnerability scan yet. The pinned vendor versions are also from 2024 and need a reviewed upgrade. |
 | Everything as code | Compose files, firewall rules, CI pipeline, and docs all in Git | Controlled baseline; every change goes through review and leaves an audit trail | No formal change-approval workflow (no branch protection or required reviews yet) |
 | Line-ending control | `.gitattributes` forces LF line endings (`2669ca0`) | Same input gives the same build | — |
-| Python dependencies | `requirements-dev.txt` uses `pytest>=8.3` | — | **Gap:** a version range, not a lock. Fix: pinned lockfile with hashes. |
+| Python dependencies (US-207) | Exact `==` pins plus a 19-package transitive `constraints.txt`; the image installs wheels only (`--only-binary=:all:`) | Same input gives the same build | Pins without **hashes** (`--require-hashes`), so a re-uploaded package isn't detected |
 | Test gate | Deploy `needs: test`; an empty test suite fails CI | Software QA: verification before release | No independent verification (NQA-1 expects reviewers independent of the designer) |
 
 ### 2.4 Dual-zone radiation monitoring (physical shielding zones)
@@ -94,7 +94,7 @@ Requirement → implementation → verification → evidence. This chain is what
 | G1 | Bidirectional TCP across L3.5, with IT initiating | Hardware **data diode**, plant → corporate only; replicate historian data outward |
 | G2 | `git push` deploys into OT | Controlled change process: approved package → scanned portable media / kiosk → manual install with verification |
 | G3 | Dual-homed PC #4 as the boundary | Dedicated firewall pair or diode plus a DMZ historian or broker |
-| G4 | Tag-pinned images, ranged Python deps | Digest pinning, hashed lockfiles, SBOM, signed images |
+| G4 | *Partly closed (Sprint 2):* images digest-pinned, Python deps exactly locked. Still open: hashes, SBOM, signatures, CVE scan | Hashed lockfiles, SBOM per image, signed images verified at deploy, vulnerability scanning |
 | G5 | Flat OT /24 | VLANs / separate switches per level; monitored conduits |
 | G6 | No continuous monitoring | OT IDS (passive span port), centralized logs, periodic control reviews |
 | G7 | No independent review | Branch protection + required reviewer; independent V&V for safety-relevant software |

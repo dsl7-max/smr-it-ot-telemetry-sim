@@ -66,6 +66,7 @@ flowchart LR
 |---|--------|-------------|------------|---------|---------|-------------|
 | F1 | PC #1 `192.168.1.177` | github.com | 443/TCP | `git push` | Allow | default outbound |
 | F2 | PC #4 `192.168.1.244` | github.com | 443/TCP | Actions runner long-poll (outbound only) | Allow | default outbound |
+| F2b | PC #4 `192.168.1.244` | ghcr.io (+ `pkg-containers.githubusercontent.com`) | 443/TCP | Pull the CI-built plant image **by digest** (runner `GITHUB_TOKEN`, outbound only) | Allow | default outbound |
 | F3 | `192.168.1.0/24` | PC #4 `192.168.1.244` | 3000/TCP | Grafana dashboards | Allow | PC #4 inbound rule |
 | F4 | PC #1 `192.168.1.177` | PC #4 `192.168.1.244` | 5432/TCP | SQL from dev box | Allow | PC #4 inbound rule |
 | F5 | PC #4 `10.10.0.30` | PC #3 `10.10.0.20` | 1883/TCP | MQTT subscribe (L3.5 data conduit) | Allow | PC #3 inbound rule |
@@ -112,7 +113,7 @@ PCs #2 and #3 cannot reach GitHub, so they **cannot host Actions runners**. PC #
 ```
 PC #1 ──git push──► github.com ◄──443 long-poll── PC #4 runner (NIC 1)
                                                      │
-                     build/pull images locally on PC #4 (has Internet)
+        pull CI-built images BY DIGEST (ghcr.io citadel-plant, Docker Hub bases) on PC #4 (has Internet)
                                                      │
             docker save | ssh citadel-hmi docker load        (NIC 2 → 10.10.0.20:22)
             docker save | ssh citadel-plant docker load      (ProxyJump via 10.10.0.20 → 10.10.0.10:22)
@@ -137,7 +138,7 @@ Host citadel-plant
 
 Why this shape:
 - **ProxyJump keeps X1 intact:** PC #2 only ever sees SSH from `10.10.0.20`; PC #4 → PC #2 stays blocked at both ends.
-- **Image transfer, not pulls:** air-gapped Docker daemons can't reach Docker Hub/PyPI, so images are built on PC #4 and streamed over SSH (`--pull never` on the OT side).
+- **Image transfer, not pulls:** air-gapped Docker daemons can't reach Docker Hub/PyPI, so PC #4 pulls images by digest (the plant image is built and smoke-tested in CI and published to private `ghcr.io/<owner>/citadel-plant`) and streams them over SSH (`--pull never` on the OT side). OT nodes never see a registry.
 - **No bind-mounted host files on OT services:** with a remote `DOCKER_HOST`, bind-mount paths resolve on the *remote* PC. Configs (e.g., `mosquitto.conf`) must be baked into images.
 
 ## 7. Verification Plan (executed in US-406, Sprint 4)

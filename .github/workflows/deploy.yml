@@ -11,8 +11,11 @@ on:
 
 jobs:
   test:
-    name: Unit tests (pytest)
+    name: Tests + plant image (pytest, docker)
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write   # US-206: publish the tested plant image to ghcr.io with GITHUB_TOKEN (no PAT, no Docker Hub)
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -23,6 +26,55 @@ jobs:
         run: pip install -r requirements-dev.txt
       - name: Run pytest
         run: pytest -q
+      # US-204: build the plant image from the real compose file and smoke-test the running container.
+      - name: Build and start plant container
+        run: docker compose -f deploy/docker-compose.plant.yml up -d --build --wait --wait-timeout 90
+        env:
+          SIM_SEED: "42"
+          IMAGE_SOURCE: ${{ github.server_url }}/${{ github.repository }}
+          IMAGE_REVISION: ${{ github.sha }}
+      - name: Verify non-root and hardening
+        run: |
+          set -eu
+          test "$(docker exec plant-virtual-plc id -u)" = "10001"
+          test "$(docker inspect -f '{{.HostConfig.ReadonlyRootfs}}' plant-virtual-plc)" = "true"
+          docker inspect -f 'health={{.State.Health.Status}} user={{.Config.User}} caps_drop={{.HostConfig.CapDrop}}' plant-virtual-plc
+      - name: Protocol smoke test (Modbus :502, OPC UA :4840)
+        run: pytest -q simulators/virtual_plc/tests/test_container_smoke.py
+        env:
+          PLANT_SMOKE_HOST: "127.0.0.1"
+      # US-206: publish exactly the image that passed the smoke test (no rebuild), then record its digest.
+      # PC #4 pulls it by digest and streams it into the air gap (docs/network.md section 6).
+      - name: Publish plant image to ghcr.io
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -eu
+          image="ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/citadel-plant"
+          sha_tag="sha-${GITHUB_SHA::7}"
+          echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+          docker tag citadel/plant:dev "$image:$sha_tag"
+          docker tag citadel/plant:dev "$image:main"
+          docker push "$image:$sha_tag"
+          docker push "$image:main"
+          digest="$(docker buildx imagetools inspect "$image:$sha_tag" --format '{{json .Manifest}}' | jq -r .digest)"
+          case "$digest" in sha256:*) ;; *) echo "could not resolve pushed digest" >&2; exit 1 ;; esac
+          {
+            echo "### Plant image published"
+            echo ""
+            echo "Pin this in deploys (US-206):"
+            echo ""
+            echo "PLANT_IMAGE=$image:$sha_tag@$digest"
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "PLANT_IMAGE=$image:$sha_tag@$digest"
+          docker logout ghcr.io
+      - name: Plant container logs
+        if: always()
+        run: docker compose -f deploy/docker-compose.plant.yml logs --no-color || true
+      - name: Stop plant container
+        if: always()
+        run: docker compose -f deploy/docker-compose.plant.yml down || true
 
   deploy:
     name: Deploy ${{ matrix.name }}

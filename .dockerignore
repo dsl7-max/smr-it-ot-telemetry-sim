@@ -1,0 +1,8 @@
+# Build context is the repo root; allow-list only what images need.
+*
+!requirements.txt
+!constraints.txt
+!simulators/
+simulators/**/tests/
+simulators/**/__pycache__/
+simulators/**/*.pyc

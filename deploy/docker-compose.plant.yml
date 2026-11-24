@@ -1,26 +1,35 @@
 # PC #2 — Citadel Plant Floor (Purdue L0–1) · citadel-plant · 10.10.0.10 · AIR-GAPPED
 # Deployed remotely from the PC #4 jump-host (DOCKER_HOST=ssh://citadel-plant via ProxyJump) — see docs/network.md §6.
-# Air gap: images must be self-contained and pre-loaded (no pulls); no bind-mounted host files.
+# Air gap: CI builds + smoke-tests the image and publishes it to ghcr.io; PC #4 pulls it BY DIGEST,
+# moves it with `docker save | docker load`, and PC #2 starts it with `--pull never` (PLANT_IMAGE=ghcr.io/...@sha256:...).
 # Exposes field protocols to the Control Room (PC #3, 10.10.0.20) only: Modbus TCP :502, OPC UA :4840.
+# Register / node map: docs/tag-map.md.
 name: citadel-plant
 
-services: {}
-  # --- US-103 (Sprint 1): enable once /simulators has a Dockerfile ---
-  # citadel-reactor-sim:
-  #   build: ../simulators
-  #   container_name: plant-reactor-sim
-  #   restart: unless-stopped
-  #   environment:
-  #     SIM_TICK_SECONDS: "1"
-  #     SIM_SEED: ""                  # set for deterministic runs
-  #
-  # --- Sprint 2: Virtual PLC (reads sim, serves field protocols) ---
-  # virtual-plc:
-  #   build: ../simulators/virtual_plc
-  #   container_name: plant-virtual-plc
-  #   restart: unless-stopped
-  #   ports:
-  #     - "502:502"     # Modbus TCP  -> PC #3
-  #     - "4840:4840"   # OPC UA      -> PC #3
-  #   depends_on:
-  #     - citadel-reactor-sim
+services:
+  citadel-plant:
+    build:
+      context: ..
+      dockerfile: simulators/Dockerfile
+      args:
+        IMAGE_SOURCE: ${IMAGE_SOURCE:-}
+        IMAGE_REVISION: ${IMAGE_REVISION:-}
+    # Local/dev default; deploys set PLANT_IMAGE to the published digest-pinned ref (US-206).
+    image: ${PLANT_IMAGE:-citadel/plant:dev}
+    container_name: plant-virtual-plc
+    restart: unless-stopped
+    environment:
+      SIM_SEED: ${SIM_SEED:-}                      # empty = random; set for repeatable demos
+      SIM_TICK_SECONDS: ${SIM_TICK_SECONDS:-1.0}
+    ports:
+      - "502:5020"     # Modbus TCP  -> PC #3 (container listens unprivileged on 5020)
+      - "4840:4840"    # OPC UA      -> PC #3 (FactoryTalk Optix)
+    # Hardening: non-root (image USER 10001), immutable filesystem, no Linux capabilities.
+    read_only: true
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp
+    # HEALTHCHECK is baked into the image (TCP accept on 5020 + 4840).
+    # No volumes and no bind mounts: all code and config live in the image (air-gap rule).

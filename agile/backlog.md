@@ -43,7 +43,7 @@
   - [ ] OpenSSH Server on PC #2/#3 (key-only auth, `citadel` user); runner's `~/.ssh/config` with `ProxyJump citadel-hmi` for `citadel-plant`
   - [ ] Decide Docker on PC #2/#3: Docker Desktop + auto-login vs. Docker Engine in WSL (headless)
   - [ ] Bake `mosquitto.conf` into a custom image (no bind mounts for remotely deployed services)
-  - [ ] Rework `deploy.yml` matrix: all jobs `runs-on` PC #4; build locally → `docker save | ssh … docker load` → `DOCKER_HOST=ssh://…` `docker compose up --pull never`
+  - [ ] Rework `deploy.yml` matrix: all jobs `runs-on` PC #4; pull the CI-published plant image by digest from ghcr.io (`docker login ghcr.io` with the job's `GITHUB_TOKEN`) → `docker save | ssh … docker load` → `DOCKER_HOST=ssh://…` `docker compose up --pull never`
   - [ ] Configure secrets (`POSTGRES_PASSWORD`, `GRAFANA_ADMIN_PASSWORD`) and variables (`PLANT_HOST=10.10.0.10`, `CONTROL_ROOM_HOST=10.10.0.20`); set `RUNNERS_READY=true`
   - [ ] Verify one `git push` deploys all 3 stacks; `docker compose ps` healthy on PC #3 and PC #4
 
