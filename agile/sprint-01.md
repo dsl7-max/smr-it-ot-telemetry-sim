@@ -56,7 +56,7 @@
 
 - [x] `/.github/workflows/deploy.yml` scaffolded: pytest → deploy matrix
 - [x] `/deploy/docker-compose.plant.yml`, `docker-compose.control-room.yml`, `docker-compose.enterprise-it.yml` scaffolded
-- [x] Private GitHub repo created and `main` pushed (`dsl7-max/valar-it-ot-sim`)
+- [x] Private GitHub repo created and `main` pushed (`dsl7-max/smr-it-ot-sim`)
 - [x] Push to `main` runs pytest and blocks deploy on failure (deploy `needs: test`; verified green on `714099d`)
 - [x] Deploy jobs gated behind repo variable `RUNNERS_READY == 'true'` so `main` stays green until the runner exists
 - [ ] ➜ **Moved to US-406 (Sprint 4, PO directive 2026-11-23):** single runner on PC #4 (air gap means PCs #2/#3 can't host runners), SSH jump-host deploy, secrets/variables, `RUNNERS_READY=true`, end-to-end deploy of all 3 stacks
@@ -82,7 +82,7 @@
 
 - **2026-11-21 (Session 1):** Scaffolded repo structure, Sprint 1 board, `CLAUDE.md` rules, starter Docker Compose files, and the test→deploy GitHub Actions pipeline. Next: complete US-101 environment verification and build the US-103 helium sensor simulator with tests.
 - **2026-11-23 (Session 2):** Re-baselined to the 4-PC Citadel architecture (Plant Floor L0–1, Control Room L2–3, Enterprise IT L4 behind the L3.5 firewall) with three compose files, a matrix deploy to three runner labels, the architecture diagram, and a 6-week backlog to the Dec 31 MVP; US-102 closed, and US-101 left open pending VS Code extensions and a Git identity. Next: create the private GitHub repo, register the three self-hosted runners, and build the US-103 reactor simulator.
-- **2026-11-23 (Session 3):** Installed the VS Code extensions, set the Git identity (`dsl7-max`), made the initial commit, and pushed `main` to the private repo `dsl7-max/valar-it-ot-sim`, closing US-101 and US-102. Next: build the US-103 Citadel reactor simulator with pytest, then register the three self-hosted runners.
+- **2026-11-23 (Session 3):** Installed the VS Code extensions, set the Git identity (`dsl7-max`), made the initial commit, and pushed `main` to the private repo `dsl7-max/smr-it-ot-sim`, closing US-101 and US-102. Next: build the US-103 Citadel reactor simulator with pytest, then register the three self-hosted runners.
 - **2026-11-23 (Session 4):** Built the US-103 Citadel reactor simulator (CORE_TEMP °C, HE_LOOP_PRESS bar, RAD_MON_01–03 µSv/h) with a seeded, clock-injected design, a JSON-lines CLI, and 26 passing pytest tests, and made CI fail on an empty test suite. Next: push to confirm the GitHub Actions `test` job passes, then start US-104 network documentation and register the self-hosted runners.
 - **2026-11-23 (Session 5):** The GitHub Actions `test` job passed on `714099d`, closing US-103, and the pytest gate in front of deploy is confirmed working. Next: US-104 network documentation (hostnames, static IPs, L3.5 firewall rules) and registering the self-hosted runners on PC #2–#4.
 - **2026-11-23 (Session 6):** Gated the three deploy jobs behind the `RUNNERS_READY` repo variable so pushes to `main` stay green on pytest, and deferred runner registration and end-to-end deploy to Sprint 4 (US-406). Next: US-104 network documentation and static IP verification.
