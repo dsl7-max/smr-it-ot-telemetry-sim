@@ -46,6 +46,7 @@
   - [ ] Rework `deploy.yml` matrix: all jobs `runs-on` PC #4; pull the CI-published plant image by digest from ghcr.io (`docker login ghcr.io` with the job's `GITHUB_TOKEN`) → `docker save | ssh … docker load` → `DOCKER_HOST=ssh://…` `docker compose up --pull never`
   - [ ] Configure secrets (`POSTGRES_PASSWORD`, `GRAFANA_ADMIN_PASSWORD`) and variables (`PLANT_HOST=10.10.0.10`, `CONTROL_ROOM_HOST=10.10.0.20`); set `RUNNERS_READY=true`
   - [ ] Verify one `git push` deploys all 3 stacks; `docker compose ps` healthy on PC #3 and PC #4
+  - [ ] Evidence: run the probe from PC #3 (PASS, same scan) and record the table here. PC #3 has no pip, but the probe ships in the plant image: load `$PLANT_IMAGE` on PC #3 too, then `docker run --rm --pull never $PLANT_IMAGE python -m simulators.plant_probe --host 10.10.0.10` (uses flows F7/F8)
 
 ## Sprint 5 — Alarms, Scenarios & Hardening
 - [ ] **US-501** Alarm limits (HI/HIHI/LO/LOLO) in PLC + HMI alarm banner + Grafana alert rules.

@@ -43,6 +43,9 @@ jobs:
         run: pytest -q simulators/virtual_plc/tests/test_container_smoke.py
         env:
           PLANT_SMOKE_HOST: "127.0.0.1"
+      # US-205: side-by-side Modbus/OPC UA evidence table (read-only); exits non-zero on any mismatch.
+      - name: Plant probe (both protocols, same scan)
+        run: python -m simulators.plant_probe --host 127.0.0.1
       # US-206: publish exactly the image that passed the smoke test (no rebuild), then record its digest.
       # PC #4 pulls it by digest and streams it into the air gap (docs/network.md section 6).
       - name: Publish plant image to ghcr.io
