@@ -74,3 +74,7 @@ docker compose -f deploy/docker-compose.plant.yml down
 ## Deployment
 
 Pushing to `main` runs `.github/workflows/deploy.yml`. On a GitHub-hosted runner it runs pytest, builds the plant container, smoke-tests it over both protocols, and publishes that exact image to `ghcr.io`, pinned by SHA-256 digest. The single self-hosted runner on dual-NIC PC #4 then deploys its own stack locally. It pulls the OT images by digest and moves them into the air-gapped OT LAN with `docker save | docker load` over SSH (PC #3 directly, PC #2 via ProxyJump through PC #3). Deploys are gated by the `RUNNERS_READY` repo variable until that runner is live (US-406). To run one stack by hand, copy `deploy/.env.example` to `deploy/.env` and run `docker compose -f deploy/<file>.yml --env-file deploy/.env up -d`.
+
+---
+
+**Author:** David LeClear Sr. — Systems Architect & Full-Stack Software Engineer ([2-Page Resume (PDF)](docs/David-LeClear-Sr-Resume.pdf))
